@@ -1,0 +1,7 @@
+.vs/
+bin/
+obj/
+*.user
+logs/
+appsettings.Development.json
+firebase-credentials.json

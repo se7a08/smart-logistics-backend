@@ -1,0 +1,37 @@
+﻿using SmartLogistics.Domain.Common;
+using SmartLogistics.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace SmartLogistics.Domain.Entities
+{
+    /// <summary>
+    /// Application user entity supporting both Admin and Driver roles.
+    /// </summary>
+    public class User : BaseEntity
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string PasswordHash { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public UserRole Role { get; set; }
+        public bool IsActive { get; set; } = true;
+
+        // FCM token for push notifications
+        public string? FcmToken { get; set; }
+
+        // Driver-specific fields
+        public string? LicenseNumber { get; set; }
+        public string? VehiclePlate { get; set; }
+
+        // Navigation Properties
+        public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+        public ICollection<Shipment> AssignedShipments { get; set; } = new List<Shipment>();
+        public ICollection<DriverLocation> Locations { get; set; } = new List<DriverLocation>();
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    }
+}
+
