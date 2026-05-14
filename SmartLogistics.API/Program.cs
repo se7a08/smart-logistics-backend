@@ -48,7 +48,7 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 // 2. Logging Middleware to track all incoming requests
 app.UseMiddleware<RequestLoggingMiddleware>();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment()|| app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
