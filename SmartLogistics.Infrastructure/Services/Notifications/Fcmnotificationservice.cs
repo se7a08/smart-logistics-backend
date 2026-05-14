@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using FirebaseAdmin;
+﻿using FirebaseAdmin;
 using FirebaseAdmin.Messaging;
-using global::SmartLogistics.Domain.Interfaces;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -13,12 +7,7 @@ using SmartLogistics.Domain.Interfaces;
 
 namespace SmartLogistics.Infrastructure.Services.Notifications
 {
-    
-   
-    /// <summary>
-    /// Firebase Cloud Messaging service for push notifications.
-    /// Supports single device, multiple devices, and topic-based messaging.
-    /// </summary>
+    // خدمة الـ Firebase عشان نبعت Push Notifications للموبايل
     public class FcmNotificationService : INotificationService
     {
         private readonly ILogger<FcmNotificationService> _logger;
@@ -28,90 +17,89 @@ namespace SmartLogistics.Infrastructure.Services.Notifications
         {
             _logger = logger;
 
-            // Initialize Firebase Admin SDK if not already initialized
+            // التأكد إن الـ Firebase اتعمل له Initialize مرة واحدة بس في البرنامج
             if (FirebaseApp.DefaultInstance == null)
             {
-                var credentialPath = config["Firebase:CredentialFilePath"];
+                var path = config["Firebase:CredentialFilePath"];
+
                 FirebaseApp.Create(new AppOptions
                 {
-                    Credential = string.IsNullOrEmpty(credentialPath)
+                    Credential = string.IsNullOrEmpty(path)
                         ? GoogleCredential.GetApplicationDefault()
-                        : GoogleCredential.FromFile(credentialPath)
+                        : GoogleCredential.FromFile(path)
                 });
             }
 
             _messaging = FirebaseMessaging.DefaultInstance;
         }
 
-        public async Task SendToDeviceAsync(string fcmToken, string title, string body, Dictionary<string, string>? data = null)
+        // إرسال لجهاز واحد (مثلاً سواق معين)
+        public async Task SendToDeviceAsync(string token, string title, string messageBody, Dictionary<string, string>? extraData = null)
         {
             try
             {
-                var message = new Message
+                var fcmMessage = new Message
                 {
-                    Token = fcmToken,
-                    Notification = new Notification { Title = title, Body = body },
-                    Data = data ?? new Dictionary<string, string>(),
+                    Token = token,
+                    Notification = new Notification { Title = title, Body = messageBody },
+                    Data = extraData ?? new Dictionary<string, string>(),
                     Android = new AndroidConfig
                     {
-                        Notification = new AndroidNotification
-                        {
-                            ClickAction = "FLUTTER_NOTIFICATION_CLICK",
-                            Priority = NotificationPriority.HIGH
-                        }
+                        Priority = Priority.High // بنخلي الأولوية عالية عشان الإشعار يوصل فوراً
                     }
                 };
 
-                var response = await _messaging.SendAsync(message);
-                _logger.LogInformation("FCM message sent to device. MessageId: {MessageId}", response);
+                var result = await _messaging.SendAsync(fcmMessage);
+                _logger.LogInformation($"Notification sent! ID: {result}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send FCM notification to device token: {Token}", fcmToken[..Math.Min(20, fcmToken.Length)]);
+                _logger.LogError($"Error sending notification to device: {ex.Message}");
             }
         }
 
-        public async Task SendToTopicAsync(string topic, string title, string body, Dictionary<string, string>? data = null)
+        // إرسال لمجموعة (Topic) زي "المناديب" أو "العملاء"
+        public async Task SendToTopicAsync(string topicName, string title, string messageBody, Dictionary<string, string>? extraData = null)
         {
             try
             {
-                var message = new Message
+                var fcmMessage = new Message
                 {
-                    Topic = topic,
-                    Notification = new Notification { Title = title, Body = body },
-                    Data = data ?? new Dictionary<string, string>()
+                    Topic = topicName,
+                    Notification = new Notification { Title = title, Body = messageBody },
+                    Data = extraData ?? new Dictionary<string, string>()
                 };
 
-                var response = await _messaging.SendAsync(message);
-                _logger.LogInformation("FCM message sent to topic '{Topic}'. MessageId: {MessageId}", topic, response);
+                await _messaging.SendAsync(fcmMessage);
+                _logger.LogInformation($"Topic notification sent to: {topicName}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send FCM notification to topic: {Topic}", topic);
+                _logger.LogError($"Error sending topic notification: {ex.Message}");
             }
         }
 
-        public async Task SendToMultipleDevicesAsync(IEnumerable<string> fcmTokens, string title, string body, Dictionary<string, string>? data = null)
+        // إرسال لكذا جهاز في نفس الوقت
+        public async Task SendToMultipleDevicesAsync(IEnumerable<string> tokens, string title, string messageBody, Dictionary<string, string>? extraData = null)
         {
-            var tokenList = fcmTokens.ToList();
-            if (!tokenList.Any()) return;
+            var tokensList = tokens.ToList();
+            if (!tokensList.Any()) return;
 
             try
             {
-                var message = new MulticastMessage
+                var multicastMsg = new MulticastMessage
                 {
-                    Tokens = tokenList,
-                    Notification = new Notification { Title = title, Body = body },
-                    Data = data ?? new Dictionary<string, string>()
+                    Tokens = tokensList,
+                    Notification = new Notification { Title = title, Body = messageBody },
+                    Data = extraData ?? new Dictionary<string, string>()
                 };
 
-                var response = await _messaging.SendEachForMulticastAsync(message);
-                _logger.LogInformation("FCM multicast: {SuccessCount} sent, {FailureCount} failed out of {Total}",
-                    response.SuccessCount, response.FailureCount, tokenList.Count);
+                var response = await _messaging.SendEachForMulticastAsync(multicastMsg);
+                _logger.LogInformation($"Multicast sent: {response.SuccessCount} success, {response.FailureCount} failed.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send FCM multicast notification");
+                _logger.LogError($"Multicast error: {ex.Message}");
             }
         }
     }

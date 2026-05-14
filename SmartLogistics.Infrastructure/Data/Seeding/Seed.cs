@@ -6,95 +6,67 @@ using SmartLogistics.Domain.Interfaces;
 
 namespace SmartLogistics.Infrastructure.Data.Seeding
 {
-    /// <summary>
-    /// Seeds the database with initial Admin and Driver users,
-    /// sample warehouses, and sample shipments for development/testing.
-    /// </summary>
+   
     public static class DatabaseSeeder
     {
         public static async Task SeedAsync(AppDbContext context, IPasswordHasher hasher)
         {
-            await context.Database.EnsureCreatedAsync();
-
-            if (await context.Users.AnyAsync()) return; // Already seeded
-
-            // ── Seed Users ──────────────────────────────────────────────────────
+            if (await context.Users.AnyAsync()) return;
 
             var admin = new User
             {
-                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                FullName = "System Administrator",
-                Email = "admin@smartlogistics.com",
-                PasswordHash = hasher.Hash("Admin@123"),
-                PhoneNumber = "+201000000001",
+                Id = Guid.NewGuid(),
+                FullName = "Seha Admin",
+                Email = "seha_admin@logistics.com",
+                PasswordHash = hasher.Hash("123456"),
+                PhoneNumber = "01023456789",
                 Role = UserRole.Admin,
                 IsActive = true
             };
 
             var driver1 = new User
             {
-                Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                Id = Guid.NewGuid(),
                 FullName = "Ahmed Hassan",
-                Email = "ahmed.driver@smartlogistics.com",
-                PasswordHash = hasher.Hash("Driver@123"),
-                PhoneNumber = "+201000000002",
+                Email = "ahmed.h@yahoo.com", 
+                PasswordHash = hasher.Hash("pass123"),
+                PhoneNumber = "01122334455",
                 Role = UserRole.Driver,
-                LicenseNumber = "DL-123456",
-                VehiclePlate = "ABC-1234",
+                LicenseNumber = "DL-12345",
+                VehiclePlate = "ن ص ج 123", 
                 IsActive = true
             };
 
-            var driver2 = new User
+            context.Users.AddRange(admin, driver1);
+
+            // إضافة مخازن في محافظة المنيا
+            var warehouse1 = new Warehouse
             {
-                Id = Guid.Parse("00000000-0000-0000-0000-000000000003"),
-                FullName = "Mohamed Ali",
-                Email = "mohamed.driver@smartlogistics.com",
-                PasswordHash = hasher.Hash("Driver@123"),
-                PhoneNumber = "+201000000003",
-                Role = UserRole.Driver,
-                LicenseNumber = "DL-789012",
-                VehiclePlate = "XYZ-5678",
+                Id = Guid.NewGuid(),
+                Name = "مخزن المنيا الرئيسي",
+                Code = "MIN-MAIN-01",
+                Address = "المنيا - شارع طه حسين",
+                City = "Minya",
+                Capacity = 1000,
+                ManagerName = "Fady Zaki",
                 IsActive = true
             };
 
-            context.Users.AddRange(admin, driver1, driver2);
-
-            // ── Seed Warehouses ─────────────────────────────────────────────────
-
-            var warehouseCairo = new Warehouse
+            var warehouse2 = new Warehouse
             {
-                Id = Guid.Parse("00000000-0000-0000-0001-000000000001"),
-                Name = "Cairo Central Warehouse",
-                Code = "CAI-CENTRAL",
-                Address = "10 Industrial Zone, Nasr City",
-                City = "Cairo",
-                Country = "Egypt",
-                Latitude = 30.0626,
-                Longitude = 31.2497,
-                Capacity = 5000,
-                ManagerName = "Omar Khalil",
-                ManagerPhone = "+201111111111",
+                Id = Guid.NewGuid(),
+                Name = "فرع ملوي",
+                Code = "MAL-BRANCH-02", 
+                Address = "ملوي - خلف المحطة",
+                City = "Malwi",
+                Capacity = 1500,
+                ManagerName = "Mina Salah",
                 IsActive = true
             };
 
-            var warehouseAlex = new Warehouse
-            {
-                Id = Guid.Parse("00000000-0000-0000-0001-000000000002"),
-                Name = "Alexandria Port Warehouse",
-                Code = "ALEX-PORT",
-                Address = "5 Port Said Street, Bab Sharqi",
-                City = "Alexandria",
-                Country = "Egypt",
-                Latitude = 31.2001,
-                Longitude = 29.9187,
-                Capacity = 3000,
-                ManagerName = "Sara Nader",
-                ManagerPhone = "+201222222222",
-                IsActive = true
-            };
+            context.Warehouses.AddRange(warehouse1, warehouse2);
 
-            context.Warehouses.AddRange(warehouseCairo, warehouseAlex);
-
+            
             await context.SaveChangesAsync();
         }
     }

@@ -4,47 +4,40 @@ using SmartLogistics.Application.DTOs.Drivers;
 using SmartLogistics.Application.DTOs.Shipments;
 using SmartLogistics.Application.DTOs.Warehouses;
 using SmartLogistics.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SmartLogistics.Application.Common.Mappings
 {
-    /// <summary>
-    /// AutoMapper profile defining all entity-to-DTO mappings.
-    /// </summary>
+    // ملف إعدادات الـ AutoMapper لتحويل الـ Entities لـ DTOs والعكس
     public class MappingProfile : Profile
     {
         public MappingProfile()
         {
-            // User mappings
+            // إعدادات تحويل بيانات المستخدم
             CreateMap<User, UserDto>()
-                .ForMember(d => d.Role, o => o.MapFrom(s => s.Role.ToString()));
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.ToString()));
 
-            // Shipment mappings
+            // إعدادات تحويل الشحنات - بنربط أسماء المستودعات والسواقين بدل الـ IDs بس
             CreateMap<Shipment, ShipmentDto>()
-                .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
-                .ForMember(d => d.DriverName, o => o.MapFrom(s => s.Driver != null ? s.Driver.FullName : null))
-                .ForMember(d => d.OriginWarehouseName, o => o.MapFrom(s => s.OriginWarehouse.Name))
-                .ForMember(d => d.DestinationWarehouseName, o => o.MapFrom(s => s.DestinationWarehouse.Name));
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.DriverName, opt => opt.MapFrom(src => src.Driver != null ? src.Driver.FullName : "لم يتم التعيين"))
+                .ForMember(dest => dest.OriginWarehouseName, opt => opt.MapFrom(src => src.OriginWarehouse.Name))
+                .ForMember(dest => dest.DestinationWarehouseName, opt => opt.MapFrom(src => src.DestinationWarehouse.Name));
 
+            // تحويل تاريخ حالات الشحنة
             CreateMap<ShipmentStatusHistory, ShipmentStatusHistoryDto>()
-                .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()));
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
 
-            // Warehouse mappings
+            // تحويل بيانات المخازن/المستودعات
             CreateMap<Warehouse, WarehouseDto>();
 
-            // Driver location mappings
+            // تحويل بيانات مواقع السواقين
             CreateMap<DriverLocation, DriverLocationDto>()
-                .ForMember(d => d.DriverName, o => o.MapFrom(s => s.Driver.FullName));
+                .ForMember(dest => dest.DriverName, opt => opt.MapFrom(src => src.Driver.FullName));
 
-            // Driver task (shipment from driver perspective)
+            // تحويل الشحنة لشكل "مهمة" للسواق (Driver Task)
             CreateMap<Shipment, DriverTaskDto>()
-                .ForMember(d => d.ShipmentId, o => o.MapFrom(s => s.Id))
-                .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()));
+                .ForMember(dest => dest.ShipmentId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
         }
     }
 }
-

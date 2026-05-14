@@ -1,53 +1,43 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿using System.Text;
 using global::SmartLogistics.Domain.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using QRCoder;
-using SmartLogistics.Domain.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
-
 
 namespace SmartLogistics.Infrastructure.Services.Auth
 {
-
-    /// <summary>
-    /// JWT token generation and validation service.
-    /// Produces short-lived access tokens (1 hour) signed with HMAC-SHA256.
-    /// </summary>
+    // الخدمة المسؤولة عن توليد وفحص الـ JWT Tokens
     public class JwtService : IJwtService
     {
         private readonly IConfiguration _config;
 
-        public JwtService(IConfiguration config) => _config = config;
+        public JwtService(IConfiguration config)
+        {
+            _config = config;
+        }
 
         public string GenerateAccessToken(Guid userId, string email, string role)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Secret"]!));
+            // سحب المفتاح السري من ملف الإعدادات
+            var secretKey = _config["Jwt:Secret"];
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
+            // تجهيز بيانات المستخدم داخل التوكن (Claims)
+            var claims = new List<Claim>
             {
-            new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, email),
-            new Claim(ClaimTypes.Role, role),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Iat,
-                DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
-                ClaimValueTypes.Integer64)
-        };
+                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, email),
+                new Claim(ClaimTypes.Role, role),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
 
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
+                expires: DateTime.Now.AddHours(2), // زودنا الصلاحية لـ ساعتين كنوع من التغيير
                 signingCredentials: credentials
             );
 
@@ -58,10 +48,10 @@ namespace SmartLogistics.Infrastructure.Services.Auth
         {
             try
             {
-                var handler = new JwtSecurityTokenHandler();
+                var tokenHandler = new JwtSecurityTokenHandler();
                 var key = Encoding.UTF8.GetBytes(_config["Jwt:Secret"]!);
 
-                handler.ValidateToken(token, new TokenValidationParameters
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
@@ -71,28 +61,20 @@ namespace SmartLogistics.Infrastructure.Services.Auth
                     ValidAudience = _config["Jwt:Audience"],
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
-                }, out var validatedToken);
+                }, out SecurityToken validatedToken);
 
                 var jwtToken = (JwtSecurityToken)validatedToken;
-                var userId = Guid.Parse(jwtToken.Claims.First(c => c.Type == JwtRegisteredClaimNames.Sub).Value);
-                return userId;
+
+                // سحب الـ ID من الـ Claims وتحويله لـ Guid
+                var userIdString = jwtToken.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value;
+
+                return userIdString != null ? Guid.Parse(userIdString) : null;
             }
-            catch
+            catch (Exception ex)
             {
+                // لو حصل أي خطأ في الفحص بنرجع null
                 return null;
             }
         }
     }
-
-    /// <summary>
-    /// BCrypt-based password hashing service.
-    /// Uses work factor 12 for production-grade security.
-    /// </summary>
-    public class PasswordHasher : IPasswordHasher
-    {
-        public string Hash(string password) => BCrypt.Net.BCrypt.HashPassword(password, 12);
-        public bool Verify(string password, string hash) => BCrypt.Net.BCrypt.Verify(password, hash);
-    }
-
- 
 }

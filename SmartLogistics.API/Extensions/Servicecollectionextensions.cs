@@ -1,78 +1,72 @@
 ﻿using FluentValidation;
 using SmartLogistics.Application.Common.Mappings;
-using global::SmartLogistics.Application.Common.Validators;
-using global::SmartLogistics.Domain.Interfaces;
-using global::SmartLogistics.Infrastructure.Data;
-using global::SmartLogistics.Infrastructure.Hubs;
-using global::SmartLogistics.Infrastructure.Repositories;
-using global::SmartLogistics.Infrastructure.Services.Auth;
-using global::SmartLogistics.Infrastructure.Services.Background;
-using global::SmartLogistics.Infrastructure.Services.Notifications;
-using global::SmartLogistics.Infrastructure.Services.QRCode;
+using SmartLogistics.Application.Common.Validators;
+using SmartLogistics.Domain.Interfaces;
+using SmartLogistics.Infrastructure.Data;
+using SmartLogistics.Infrastructure.Repositories;
+using SmartLogistics.Infrastructure.Services.Auth;
+using SmartLogistics.Infrastructure.Services.Notifications;
+using SmartLogistics.Infrastructure.Services.QRCode;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SmartLogistics.Application.Common.Behaviors;
-
 using System.Text;
+using SmartLogistics.Infrastructure.Hubs;
 
 namespace SmartLogistics.API.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        /// <summary>Registers all infrastructure services (DB, repositories, services).</summary>
+        // تسجيل خدمات الـ Infrastructure (الداتا بيز، المستودعات، والخدمات الخارجية)
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
-            // EF Core with SQL Server
+            // إعداد الاتصال بقاعدة البيانات SQL Server
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection"),
                     sql => sql.MigrationsAssembly("SmartLogistics.Infrastructure")
                               .EnableRetryOnFailure(3)));
 
-            // Repository Pattern + Unit of Work
+            // تسجيل الـ Unit of Work والـ Repositories
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            // Domain Services
+            // تسجيل خدمات الـ Domain والـ Logic
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
             services.AddScoped<IQrCodeService, QrCodeService>();
             services.AddScoped<INotificationService, FcmNotificationService>();
-            services.AddScoped<ITrackingService, TrackingService>();
-
-            // Background Services
-            services.AddHostedService<DataCleanupService>();
+            services.AddScoped<ITrackingService, TrackingService>(); // لو لسه مخلصتوش ممكن تقفله مؤقتاً
 
             return services;
         }
 
-        /// <summary>Registers all application-layer services (MediatR, AutoMapper, FluentValidation).</summary>
+        // تسجيل خدمات الـ Application (MediatR, AutoMapper, FluentValidation)
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
-            // MediatR - scans all assemblies containing handlers
+            // إعداد MediatR مع الـ Behaviors الخاصة بالـ Validation والـ Performance
             services.AddMediatR(cfg =>
             {
-                cfg.RegisterServicesFromAssembly(typeof(Application.Features.Auth.Commands.RegisterCommand).Assembly);
+                cfg.RegisterServicesFromAssembly(typeof(MappingProfile).Assembly);
                 cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
                 cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
             });
 
-            // AutoMapper
+            // إعداد AutoMapper لتحويل الـ Entities لـ DTOs
             services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
-            // FluentValidation - auto-discovers validators in application assembly
+            // إعداد FluentValidation للتحقق من صحة البيانات تلقائياً
             services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
             return services;
         }
 
-        /// <summary>Configures JWT Bearer authentication.</summary>
+        // إعداد حماية الـ API باستخدام JWT
         public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
-            var key = Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!);
+            var key = Encoding.UTF8.GetBytes(configuration["Jwt:Secret"] ?? "SmartLogisticsSuperSecretKey2026");
 
             services.AddAuthentication(options =>
             {
@@ -92,27 +86,13 @@ namespace SmartLogistics.API.Extensions
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
                 };
-
-                // Allow token via query string for SignalR connections
-                options.Events = new JwtBearerEvents
-                {
-                    OnMessageReceived = ctx =>
-                    {
-                        var accessToken = ctx.Request.Query["access_token"];
-                        var path = ctx.HttpContext.Request.Path;
-                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
-                            ctx.Token = accessToken;
-                        return Task.CompletedTask;
-                    }
-                };
             });
 
             services.AddAuthorization();
-
             return services;
         }
 
-        /// <summary>Configures Swagger/OpenAPI with JWT support.</summary>
+        // إعداد Swagger عشان نقدر نجرب الـ API بسهولة
         public static IServiceCollection AddSwaggerDocumentation(this IServiceCollection services)
         {
             services.AddSwaggerGen(c =>
@@ -121,15 +101,13 @@ namespace SmartLogistics.API.Extensions
                 {
                     Title = "Smart Logistics API",
                     Version = "v1",
-                    Description = "Production-grade logistics and shipment management API with real-time tracking, " +
-                                  "QR verification, push notifications, and role-based authentication.",
-                    Contact = new OpenApiContact { Name = "Smart Logistics Team", Email = "dev@smartlogistics.com" }
+                    Description = "نظام إدارة الشحنات والخدمات اللوجستية - مشروع التخرج"
                 });
 
-                // JWT Authorization in Swagger UI
+                // إضافة دعم الـ Authorization في Swagger
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Description = "JWT Authorization header. Enter: Bearer {token}",
+                    Description = "ضع التوكن هنا بالشكل التالي: Bearer {token}",
                     Name = "Authorization",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.ApiKey,
@@ -137,28 +115,22 @@ namespace SmartLogistics.API.Extensions
                 });
 
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
-            {
                 {
-                    new OpenApiSecurityScheme
                     {
-                        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-                    },
-                    Array.Empty<string>()
-                }
-            });
-
-                // Include XML comments
-                var xmlFile = $"{typeof(Program).Assembly.GetName().Name}.xml";
-                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                if (File.Exists(xmlPath))
-                    c.IncludeXmlComments(xmlPath);
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
             });
 
             return services;
         }
 
-        /// <summary>Configures CORS for web and mobile clients.</summary>
-        public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration configuration)
+        // إعداد الـ CORS عشان الـ Flutter App يقدر يكلم الـ API
+        public static IServiceCollection AddCorsPolicy(this IServiceCollection services,IConfiguration configuration)
         {
             services.AddCors(options =>
             {
@@ -166,15 +138,6 @@ namespace SmartLogistics.API.Extensions
                     policy.AllowAnyOrigin()
                           .AllowAnyMethod()
                           .AllowAnyHeader());
-
-                options.AddPolicy("Production", policy =>
-                {
-                    var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-                    policy.WithOrigins(origins)
-                          .AllowAnyMethod()
-                          .AllowAnyHeader()
-                          .AllowCredentials(); // Required for SignalR
-                });
             });
 
             return services;

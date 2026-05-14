@@ -5,36 +5,47 @@ using SmartLogistics.Infrastructure.Data;
 using SmartLogistics.Infrastructure.Data.Seeding;
 using SmartLogistics.Infrastructure.Hubs;
 using SmartLogistics.Domain.Interfaces;
-using Microsoft.AspNetCore.Identity;
-using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog
+// Configure Serilog for structured logging
 builder.Host.UseSerilog((ctx, cfg) =>
     cfg.ReadFrom.Configuration(ctx.Configuration));
 
-// Services
+// Add services to the container
 builder.Services.AddControllers();
-builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddJwtAuthentication(builder.Configuration);
-builder.Services.AddSwaggerDocumentation();
-builder.Services.AddCorsPolicy(builder.Configuration);
-builder.Services.AddSignalR();
+builder.Services.AddApplication(); // Registers MediatR, Automapper, and Validators
+builder.Services.AddInfrastructure(builder.Configuration); // Registers DB and Repositories
+builder.Services.AddJwtAuthentication(builder.Configuration); // Configures JWT Security
+builder.Services.AddSwaggerDocumentation(); // Configures Swagger UI
+builder.Services.AddCorsPolicy(builder.Configuration); // Configures CORS for Flutter/Web
+builder.Services.AddSignalR(); // Enables real-time communication for tracking
 
 var app = builder.Build();
 
-// Seed Database
+// Initialize and seed the database during startup
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-    await DatabaseSeeder.SeedAsync(db, hasher);
+    var services = scope.ServiceProvider;
+    try
+    {
+        var db = services.GetRequiredService<AppDbContext>();
+        var hasher = services.GetRequiredService<IPasswordHasher>();
+        await DatabaseSeeder.SeedAsync(db, hasher);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
 }
 
-// Middleware
+// Configure the HTTP request pipeline (Middleware)
+
+// 1. Global Exception Handling should be the first to catch any errors
 app.UseMiddleware<GlobalExceptionMiddleware>();
+
+// 2. Logging Middleware to track all incoming requests
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -50,6 +61,8 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Map endpoints
 app.MapControllers();
 app.MapHub<TrackingHub>("/hubs/tracking");
 

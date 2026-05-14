@@ -2,32 +2,24 @@
 using MediatR;
 using SmartLogistics.Application.Common.Exceptions;
 using SmartLogistics.Application.DTOs.Drivers;
-using SmartLogistics.Application.DTOs.Warehouses;
 using SmartLogistics.Domain.Entities;
 using SmartLogistics.Domain.Enums;
 using SmartLogistics.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SmartLogistics.Application.Features.Drivers.Commands
 {
-    // ─── Update Driver Location ─────────────────────────────────────────────────
-
+    // --- Update Driver Location ---
+    // Triggered periodically by the mobile app to track the driver's movement
     public record UpdateDriverLocationCommand(Guid DriverId, UpdateLocationRequest Request) : IRequest<DriverLocationDto>;
 
     public class UpdateDriverLocationCommandHandler : IRequestHandler<UpdateDriverLocationCommand, DriverLocationDto>
     {
         private readonly IUnitOfWork _uow;
-        private readonly IMapper _mapper;
         private readonly ITrackingService _tracking;
 
-        public UpdateDriverLocationCommandHandler(IUnitOfWork uow, IMapper mapper, ITrackingService tracking)
+        public UpdateDriverLocationCommandHandler(IUnitOfWork uow, ITrackingService tracking)
         {
             _uow = uow;
-            _mapper = mapper;
             _tracking = tracking;
         }
 
@@ -51,28 +43,37 @@ namespace SmartLogistics.Application.Features.Drivers.Commands
             await _uow.Repository<DriverLocation>().AddAsync(location, ct);
             await _uow.SaveChangesAsync(ct);
 
-            // Broadcast via SignalR in real-time
-            await _tracking.BroadcastDriverLocationAsync(command.DriverId, command.Request.Latitude, command.Request.Longitude);
+            // Broadcast location to Admin Dashboard and Client App via SignalR
+            await _tracking.BroadcastDriverLocationAsync(
+                command.DriverId,
+                command.Request.Latitude,
+                command.Request.Longitude
+            );
 
-            return new DriverLocationDto(driver.Id, driver.FullName,
-                location.Latitude, location.Longitude, location.Speed, location.Heading, location.RecordedAt);
+            return new DriverLocationDto(
+                driver.Id,
+                driver.FullName,
+                location.Latitude,
+                location.Longitude,
+                location.Speed,
+                location.Heading,
+                location.RecordedAt
+            );
         }
     }
 
-    // ─── Complete Delivery ──────────────────────────────────────────────────────
-
+    // --- Complete Delivery ---
+    // Finalizes the shipment lifecycle after successful QR verification
     public record CompleteDeliveryCommand(Guid DriverId, Guid ShipmentId, string? Notes, string? PhotoUrl) : IRequest<bool>;
 
     public class CompleteDeliveryCommandHandler : IRequestHandler<CompleteDeliveryCommand, bool>
     {
         private readonly IUnitOfWork _uow;
-        private readonly INotificationService _notifications;
         private readonly ITrackingService _tracking;
 
-        public CompleteDeliveryCommandHandler(IUnitOfWork uow, INotificationService notifications, ITrackingService tracking)
+        public CompleteDeliveryCommandHandler(IUnitOfWork uow, ITrackingService tracking)
         {
             _uow = uow;
-            _notifications = notifications;
             _tracking = tracking;
         }
 
@@ -82,11 +83,17 @@ namespace SmartLogistics.Application.Features.Drivers.Commands
                 .FirstOrDefaultAsync(s => s.Id == command.ShipmentId && s.DriverId == command.DriverId && !s.IsDeleted, ct)
                 ?? throw new NotFoundException("Shipment", command.ShipmentId);
 
+            // Business Rule: Delivery can only be completed if the shipment is currently in transit
             if (shipment.Status != ShipmentStatus.InTransit)
-                throw new BusinessRuleException("Only in-transit shipments can be marked as delivered.");
+            {
+                throw new BusinessRuleException("Only shipments with 'InTransit' status can be marked as delivered.");
+            }
 
+            // Security Check: QR code must be verified at the delivery point
             if (!shipment.QrVerified)
-                throw new BusinessRuleException("QR code must be scanned before completing delivery.");
+            {
+                throw new BusinessRuleException("QR code verification is mandatory before completing the delivery.");
+            }
 
             shipment.Status = ShipmentStatus.Delivered;
             shipment.DeliveredAt = DateTime.UtcNow;
@@ -96,22 +103,25 @@ namespace SmartLogistics.Application.Features.Drivers.Commands
 
             _uow.Repository<Shipment>().Update(shipment);
 
+            // Record this status change in the history trail
             await _uow.Repository<ShipmentStatusHistory>().AddAsync(new ShipmentStatusHistory
             {
                 ShipmentId = shipment.Id,
                 Status = ShipmentStatus.Delivered,
-                Notes = command.Notes ?? "Delivery completed"
+                Notes = command.Notes ?? "Shipment successfully delivered to recipient."
             }, ct);
 
             await _uow.SaveChangesAsync(ct);
+
+            // Notify all interested parties about the status update
             await _tracking.NotifyShipmentStatusChangeAsync(shipment.Id, "Delivered");
 
             return true;
         }
     }
 
-    // ─── Scan QR Code ───────────────────────────────────────────────────────────
-
+    // --- Scan QR Code ---
+    // Validates the physical presence of the driver at the delivery location
     public record ScanQrCommand(Guid DriverId, Guid ShipmentId, string QrCode) : IRequest<bool>;
 
     public class ScanQrCommandHandler : IRequestHandler<ScanQrCommand, bool>
@@ -119,7 +129,11 @@ namespace SmartLogistics.Application.Features.Drivers.Commands
         private readonly IUnitOfWork _uow;
         private readonly IQrCodeService _qr;
 
-        public ScanQrCommandHandler(IUnitOfWork uow, IQrCodeService qr) { _uow = uow; _qr = qr; }
+        public ScanQrCommandHandler(IUnitOfWork uow, IQrCodeService qr)
+        {
+            _uow = uow;
+            _qr = qr;
+        }
 
         public async Task<bool> Handle(ScanQrCommand command, CancellationToken ct)
         {
@@ -127,15 +141,19 @@ namespace SmartLogistics.Application.Features.Drivers.Commands
                 .FirstOrDefaultAsync(s => s.Id == command.ShipmentId && s.DriverId == command.DriverId, ct)
                 ?? throw new NotFoundException("Shipment", command.ShipmentId);
 
+            // Validate the scanned code against the stored shipment data
             if (!_qr.ValidateQrCode(command.QrCode, command.ShipmentId))
-                throw new BusinessRuleException("Invalid QR code for this shipment.");
+            {
+                throw new BusinessRuleException("The scanned QR code is invalid for this specific shipment.");
+            }
 
             shipment.QrVerified = true;
             shipment.UpdatedAt = DateTime.UtcNow;
+
             _uow.Repository<Shipment>().Update(shipment);
             await _uow.SaveChangesAsync(ct);
+
             return true;
         }
     }
-
 }

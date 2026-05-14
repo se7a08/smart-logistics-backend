@@ -17,26 +17,5 @@ namespace SmartLogistics.Domain.Enums
         Delivered = 3,
         Cancelled = 4
     }
-
-    /// <summary>
-    /// System roles for role-based authorization.
-    /// </summary>
-    public enum UserRole
-    {
-        Admin = 0,
-        Driver = 1
-    }
-
-    /// <summary>
-    /// Notification types for FCM push messages.
-    /// </summary>
-    public enum NotificationType
-    {
-        ShipmentAssigned = 0,
-        ShipmentDelivered = 1,
-        ShipmentDelayed = 2,
-        StatusUpdated = 3,
-        General = 4
-    }
 }
 

@@ -1,102 +1,115 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using global::SmartLogistics.Application.Common.Models;
-using global::SmartLogistics.Application.DTOs.Shipments;
-using global::SmartLogistics.Application.Features.Shipments.Commands;
-using global::SmartLogistics.Application.Features.Shipments.Queries;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+using MediatR;
+using System.Security.Claims;
 using SmartLogistics.Application.Common.Models;
 using SmartLogistics.Application.DTOs.Shipments;
 using SmartLogistics.Application.Features.Shipments.Commands;
 using SmartLogistics.Application.Features.Shipments.Queries;
-using System.Security.Claims;
+using SmartLogistics.Domain.Interfaces;
 
 namespace SmartLogistics.API.Controllers
 {
-
-    /// <summary>
-    /// Full shipment lifecycle management: create, track, assign drivers, update status.
-    /// </summary>
     [ApiController]
     [Route("api/shipments")]
     [Authorize]
-    [Produces("application/json")]
     public class ShipmentsController : ControllerBase
     {
         private readonly IMediator _mediator;
-        private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        public ShipmentsController(IMediator mediator) => _mediator = mediator;
-
-        /// <summary>Create a new shipment. Admin only.</summary>
-        [HttpPost]
-        [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(ApiResponse<ShipmentDto>), 201)]
-        public async Task<IActionResult> Create([FromBody] CreateShipmentRequest request, CancellationToken ct)
+        public ShipmentsController(IMediator mediator)
         {
-            var result = await _mediator.Send(new CreateShipmentCommand(request), ct);
-            return StatusCode(201, ApiResponse<ShipmentDto>.Created(result));
+            _mediator = mediator;
         }
 
-        /// <summary>Get all shipments with pagination and optional status filter. Admin only.</summary>
+        // Extracts the currently logged-in User ID
+        private Guid CurrentUserId
+        {
+            get
+            {
+                var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                return Guid.Parse(id!);
+            }
+        }
+
+        // Creates a new shipment - restricted to Admin
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create([FromBody] CreateShipmentRequest request, CancellationToken ct)
+        {
+            var command = new CreateShipmentCommand(request);
+            var result = await _mediator.Send(command, ct);
+
+            var response = ApiResponse<ShipmentDto>.Created(result, "Shipment created successfully.");
+            return StatusCode(201, response);
+        }
+
+        // Lists all shipments with filters and pagination - Admin only
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(ApiResponse<PaginatedList<ShipmentDto>>), 200)]
         public async Task<IActionResult> GetAll([FromQuery] QueryParameters paging, [FromQuery] string? status, CancellationToken ct)
         {
-            var result = await _mediator.Send(new GetAllShipmentsQuery(paging, status), ct);
+            var query = new GetAllShipmentsQuery(paging, status);
+            var result = await _mediator.Send(query, ct);
+
             return Ok(ApiResponse<PaginatedList<ShipmentDto>>.Ok(result));
         }
 
-        /// <summary>Get a single shipment by ID.</summary>
+        // Gets specific shipment details by ID
         [HttpGet("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<ShipmentDto>), 200)]
-        [ProducesResponseType(typeof(ApiResponse<object>), 404)]
         public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
         {
-            var result = await _mediator.Send(new GetShipmentByIdQuery(id), ct);
+            var query = new GetShipmentByIdQuery(id);
+            var result = await _mediator.Send(query, ct);
+
             return Ok(ApiResponse<ShipmentDto>.Ok(result));
         }
 
-        /// <summary>Get the full status history for a shipment.</summary>
+        // Returns the full tracking history of a shipment
         [HttpGet("{id:guid}/history")]
-        [ProducesResponseType(typeof(ApiResponse<List<ShipmentStatusHistoryDto>>), 200)]
         public async Task<IActionResult> GetHistory(Guid id, CancellationToken ct)
         {
-            var result = await _mediator.Send(new GetShipmentHistoryQuery(id), ct);
+            var query = new GetShipmentHistoryQuery(id);
+            var result = await _mediator.Send(query, ct);
+
             return Ok(ApiResponse<List<ShipmentStatusHistoryDto>>.Ok(result));
         }
 
-        /// <summary>Update the status of a shipment. Driver or Admin.</summary>
+        // Updates shipment status (e.g., PickedUp, InTransit)
         [HttpPatch("{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<ShipmentDto>), 200)]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateShipmentStatusRequest request, CancellationToken ct)
         {
-            var result = await _mediator.Send(new UpdateShipmentStatusCommand(id, CurrentUserId, request), ct);
-            return Ok(ApiResponse<ShipmentDto>.Ok(result, "Status updated successfully."));
+            var command = new UpdateShipmentStatusCommand(id, CurrentUserId, request);
+            var result = await _mediator.Send(command, ct);
+
+            return Ok(ApiResponse<ShipmentDto>.Ok(result, "Shipment status has been updated."));
         }
 
-        /// <summary>Assign a driver to a pending shipment. Admin only.</summary>
+        // Assigns a specific driver to a shipment - Admin only
         [HttpPost("{id:guid}/assign-driver")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(ApiResponse<ShipmentDto>), 200)]
         public async Task<IActionResult> AssignDriver(Guid id, [FromBody] AssignDriverRequest request, CancellationToken ct)
         {
-            var result = await _mediator.Send(new AssignDriverCommand(id, request.DriverId), ct);
-            return Ok(ApiResponse<ShipmentDto>.Ok(result, "Driver assigned successfully."));
+            var command = new AssignDriverCommand(id, request.DriverId);
+            var result = await _mediator.Send(command, ct);
+
+            return Ok(ApiResponse<ShipmentDto>.Ok(result, "Driver assigned to shipment."));
         }
 
-        /// <summary>Get the QR code image for a shipment as PNG. Admin or assigned Driver.</summary>
+        // Generates and returns a QR code image as a PNG file
         [HttpGet("{id:guid}/qr-image")]
-        [Produces("image/png")]
         public async Task<IActionResult> GetQrImage(Guid id, CancellationToken ct)
         {
-            var shipment = await _mediator.Send(new GetShipmentByIdQuery(id), ct);
-            var qrService = HttpContext.RequestServices
-                .GetRequiredService<SmartLogistics.Domain.Interfaces.IQrCodeService>();
+            var query = new GetShipmentByIdQuery(id);
+            var shipment = await _mediator.Send(query, ct);
+
+            // Accessing the QR service via Dependency Injection
+            var qrService = HttpContext.RequestServices.GetRequiredService<IQrCodeService>();
+
             var imageBytes = qrService.GenerateQrCodeImage(shipment.QrCode);
-            return File(imageBytes, "image/png", $"shipment-{shipment.TrackingNumber}.png");
+
+            var fileName = $"shipment-{shipment.TrackingNumber}.png";
+            return File(imageBytes, "image/png", fileName);
         }
     }
 }

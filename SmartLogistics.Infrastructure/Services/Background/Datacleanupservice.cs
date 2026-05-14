@@ -1,26 +1,16 @@
-﻿
-using global::SmartLogistics.Infrastructure.Data;
+﻿using global::SmartLogistics.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-
 namespace SmartLogistics.Infrastructure.Services.Background
 {
-    
-   
-    /// <summary>
-    /// Background service that periodically cleans up stale data:
-    /// - Expired refresh tokens older than 30 days
-    /// - Driver location history older than 7 days
-    /// Runs every 24 hours.
-    /// </summary>
+    // خدمة بتشتغل في الخلفية عشان تنضف الداتا القديمة اللي ملهاش لزمة
     public class DataCleanupService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<DataCleanupService> _logger;
-        private readonly TimeSpan _interval = TimeSpan.FromHours(24);
 
         public DataCleanupService(IServiceScopeFactory scopeFactory, ILogger<DataCleanupService> logger)
         {
@@ -30,41 +20,46 @@ namespace SmartLogistics.Infrastructure.Services.Background
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("DataCleanupService started.");
+            _logger.LogInformation("Background Data Cleanup Service has started.");
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                await DoCleanupAsync(stoppingToken);
-                await Task.Delay(_interval, stoppingToken);
+                // بنعمل التنضيف
+                await CleanDatabaseAsync(stoppingToken);
+
+                // بنستنى 24 ساعة قبل ما نكرر العملية تاني
+                await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
             }
         }
 
-        private async Task DoCleanupAsync(CancellationToken ct)
+        private async Task CleanDatabaseAsync(CancellationToken ct)
         {
+            // بما إن الـ Background Service هي Singleton فلازم نعمل Scope عشان نجيب الـ DbContext
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
             try
             {
-                var cutoffTokens = DateTime.UtcNow.AddDays(-30);
-                var deletedTokens = await db.RefreshTokens
-                    .Where(t => t.ExpiresAt < cutoffTokens || t.RevokedAt != null)
+                _logger.LogInformation("Starting database cleanup process...");
+
+                // 1. مسح الـ Refresh Tokens اللي بقالها أكتر من شهر أو الملغية
+                var tokenLimit = DateTime.Now.AddDays(-30);
+                var expiredTokens = await db.RefreshTokens
+                    .Where(t => t.ExpiresAt < tokenLimit || t.RevokedAt != null)
                     .ExecuteDeleteAsync(ct);
 
-                var cutoffLocation = DateTime.UtcNow.AddDays(-7);
-                var deletedLocations = await db.DriverLocations
-                    .Where(l => l.RecordedAt < cutoffLocation)
+                // 2. مسح سجلات تحرك السواقين القديمة (أكتر من 7 أيام) عشان حجم الداتا ميكبرش
+                var locationLimit = DateTime.Now.AddDays(-7);
+                var oldLocations = await db.DriverLocations
+                    .Where(l => l.RecordedAt < locationLimit)
                     .ExecuteDeleteAsync(ct);
 
-                _logger.LogInformation("Cleanup complete: {Tokens} expired tokens, {Locations} old location records removed.",
-                    deletedTokens, deletedLocations);
+                _logger.LogInformation($"Cleanup finished. Removed {expiredTokens} tokens and {oldLocations} locations.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during scheduled data cleanup.");
+                _logger.LogError($"Oops! Something went wrong during cleanup: {ex.Message}");
             }
         }
     }
-
-  
 }

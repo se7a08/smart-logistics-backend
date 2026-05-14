@@ -1,16 +1,14 @@
 ﻿using FluentValidation;
 using MediatR;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using ValidationException = SmartLogistics.Application.Common.Exceptions.ValidationException;
+
 namespace SmartLogistics.Application.Common.Behaviors
-{   /// <summary>
-    /// MediatR pipeline behavior that runs FluentValidation before any command/query handler.
-    /// Automatically validates all requests that have registered validators.
-    /// </summary>
+{
+    // ميدل وير عشان يشغل الـ FluentValidation تلقائياً قبل ما الـ Request يوصل للـ Handler
     public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : notnull
     {
@@ -23,60 +21,44 @@ namespace SmartLogistics.Application.Common.Behaviors
 
         public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
+            // لو مفيش أي شروط (Validators) متعرفة للطلب ده، كمل عادي
             if (!_validators.Any())
+            {
                 return await next();
+            }
 
             var context = new ValidationContext<TRequest>(request);
+            var failures = new List<FluentValidation.Results.ValidationFailure>();
 
-            var validationResults = await Task.WhenAll(
-                _validators.Select(v => v.ValidateAsync(context, cancellationToken)));
-
-            var failures = validationResults
-                .SelectMany(r => r.Errors)
-                .Where(f => f != null)
-                .ToList();
-
-            if (failures.Count != 0)
+            // بنمشي على كل الـ Validators ونجمع الأخطاء
+            foreach (var validator in _validators)
             {
-                var errors = failures
-                    .GroupBy(e => e.PropertyName, e => e.ErrorMessage)
-                    .ToDictionary(g => g.Key, g => g.ToArray());
+                var result = await validator.ValidateAsync(context, cancellationToken);
+                if (!result.IsValid)
+                {
+                    failures.AddRange(result.Errors);
+                }
+            }
 
-                throw new ValidationException(errors);
+            // لو فيه أخطاء، بنجمعهم ونرمي الـ Exception بتاعنا
+            if (failures.Count > 0)
+            {
+                // تحويل الأخطاء لشكل Dictionary (اسم الحقل : مجموعة الأخطاء اللي فيه)
+                var errorsDictionary = new Dictionary<string, string[]>();
+
+                var propertyGroups = failures
+                    .GroupBy(x => x.PropertyName)
+                    .Select(g => new { PropertyName = g.Key, Messages = g.Select(x => x.ErrorMessage).ToArray() });
+
+                foreach (var group in propertyGroups)
+                {
+                    errorsDictionary.Add(group.PropertyName, group.Messages);
+                }
+
+                throw new ValidationException(errorsDictionary);
             }
 
             return await next();
         }
     }
-
-    /// <summary>
-    /// MediatR pipeline behavior for performance logging.
-    /// Logs a warning if a request takes longer than 500ms.
-    /// </summary>
-    public class PerformanceBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-        where TRequest : notnull
-    {
-        private readonly Serilog.ILogger _logger;
-
-        public PerformanceBehavior(Serilog.ILogger logger)
-        {
-            _logger = logger;
-        }
-
-        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
-        {
-            var start = DateTime.UtcNow;
-            var response = await next();
-            var elapsed = (DateTime.UtcNow - start).TotalMilliseconds;
-
-            if (elapsed > 500)
-            {
-                _logger.Warning("Slow request detected: {RequestName} took {Elapsed}ms. Request: {@Request}",
-                    typeof(TRequest).Name, elapsed, request);
-            }
-
-            return response;
-        }
-    }
 }
-

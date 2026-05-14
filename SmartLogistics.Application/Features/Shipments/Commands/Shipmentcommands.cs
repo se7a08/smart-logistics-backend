@@ -1,21 +1,15 @@
 ﻿using AutoMapper;
 using MediatR;
 using SmartLogistics.Application.Common.Exceptions;
-using SmartLogistics.Application.Common.Models;
 using SmartLogistics.Application.DTOs.Shipments;
 using SmartLogistics.Domain.Entities;
 using SmartLogistics.Domain.Enums;
 using SmartLogistics.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SmartLogistics.Application.Features.Shipments.Commands
 {
-    // ─── Create Shipment ────────────────────────────────────────────────────────
-
+    // --- Create Shipment ---
+    // Initiates a new shipment record and generates its unique tracking and QR code
     public record CreateShipmentCommand(CreateShipmentRequest Request) : IRequest<ShipmentDto>;
 
     public class CreateShipmentCommandHandler : IRequestHandler<CreateShipmentCommand, ShipmentDto>
@@ -35,11 +29,12 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
         {
             var req = command.Request;
 
+            // Validate that both origin and destination warehouses exist and are operational
             var originExists = await _uow.Repository<Warehouse>().AnyAsync(w => w.Id == req.OriginWarehouseId && w.IsActive, ct);
             var destExists = await _uow.Repository<Warehouse>().AnyAsync(w => w.Id == req.DestinationWarehouseId && w.IsActive, ct);
 
-            if (!originExists) throw new NotFoundException("Warehouse", req.OriginWarehouseId);
-            if (!destExists) throw new NotFoundException("Warehouse", req.DestinationWarehouseId);
+            if (!originExists) throw new NotFoundException("Origin Warehouse", req.OriginWarehouseId);
+            if (!destExists) throw new NotFoundException("Destination Warehouse", req.DestinationWarehouseId);
 
             var shipment = new Shipment
             {
@@ -56,25 +51,26 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
                 IsFragile = req.IsFragile,
                 OriginWarehouseId = req.OriginWarehouseId,
                 DestinationWarehouseId = req.DestinationWarehouseId,
-                EstimatedDelivery = req.EstimatedDelivery
+                EstimatedDelivery = req.EstimatedDelivery,
+                Status = ShipmentStatus.Pending
             };
 
-            // Generate QR code tied to shipment ID
+            // Link a unique QR code to the shipment for secure delivery verification
             shipment.QrCode = _qrService.GenerateQrCode(shipment.Id);
 
             await _uow.Repository<Shipment>().AddAsync(shipment, ct);
 
-            // Record initial status history
+            // Initialize shipment history trail
             await _uow.Repository<ShipmentStatusHistory>().AddAsync(new ShipmentStatusHistory
             {
                 ShipmentId = shipment.Id,
                 Status = ShipmentStatus.Pending,
-                Notes = "Shipment created"
+                Notes = "Shipment record successfully created in the system."
             }, ct);
 
             await _uow.SaveChangesAsync(ct);
 
-            // Reload with navigation properties for mapping
+            // Fetch the created shipment with its navigation properties for a complete DTO response
             var created = await _uow.Repository<Shipment>()
                 .FirstOrDefaultAsync(s => s.Id == shipment.Id, ct)
                 ?? throw new NotFoundException("Shipment", shipment.Id);
@@ -90,23 +86,20 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
         }
     }
 
-    // ─── Update Shipment Status ─────────────────────────────────────────────────
-
+    // --- Update Shipment Status ---
+    // Handles manual status updates and maintains a geospatial history log
     public record UpdateShipmentStatusCommand(Guid ShipmentId, Guid UserId, UpdateShipmentStatusRequest Request) : IRequest<ShipmentDto>;
 
     public class UpdateShipmentStatusCommandHandler : IRequestHandler<UpdateShipmentStatusCommand, ShipmentDto>
     {
         private readonly IUnitOfWork _uow;
         private readonly IMapper _mapper;
-        private readonly INotificationService _notifications;
         private readonly ITrackingService _tracking;
 
-        public UpdateShipmentStatusCommandHandler(IUnitOfWork uow, IMapper mapper,
-            INotificationService notifications, ITrackingService tracking)
+        public UpdateShipmentStatusCommandHandler(IUnitOfWork uow, IMapper mapper, ITrackingService tracking)
         {
             _uow = uow;
             _mapper = mapper;
-            _notifications = notifications;
             _tracking = tracking;
         }
 
@@ -116,31 +109,31 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
                 .FirstOrDefaultAsync(s => s.Id == command.ShipmentId && !s.IsDeleted, ct)
                 ?? throw new NotFoundException("Shipment", command.ShipmentId);
 
+            // Logic Check: Ensure the status move follows the logistics workflow
             ValidateStatusTransition(shipment.Status, command.Request.Status);
 
             shipment.Status = command.Request.Status;
             shipment.UpdatedAt = DateTime.UtcNow;
             shipment.UpdatedBy = command.UserId.ToString();
 
-            if (command.Request.Status == ShipmentStatus.PickedUp)
-                shipment.PickedUpAt = DateTime.UtcNow;
-            if (command.Request.Status == ShipmentStatus.Delivered)
-                shipment.DeliveredAt = DateTime.UtcNow;
+            if (command.Request.Status == ShipmentStatus.PickedUp) shipment.PickedUpAt = DateTime.UtcNow;
+            if (command.Request.Status == ShipmentStatus.Delivered) shipment.DeliveredAt = DateTime.UtcNow;
 
             _uow.Repository<Shipment>().Update(shipment);
 
+            // Append to history with current coordinates if provided
             await _uow.Repository<ShipmentStatusHistory>().AddAsync(new ShipmentStatusHistory
             {
                 ShipmentId = shipment.Id,
                 Status = command.Request.Status,
-                Notes = command.Request.Notes ?? string.Empty,
+                Notes = command.Request.Notes ?? $"Status changed to {command.Request.Status}",
                 Latitude = command.Request.Latitude,
                 Longitude = command.Request.Longitude
             }, ct);
 
             await _uow.SaveChangesAsync(ct);
 
-            // Real-time notification via SignalR
+            // Broadcast status update via SignalR
             await _tracking.NotifyShipmentStatusChangeAsync(shipment.Id, shipment.Status.ToString());
 
             return _mapper.Map<ShipmentDto>(shipment);
@@ -149,21 +142,23 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
         private static void ValidateStatusTransition(ShipmentStatus current, ShipmentStatus next)
         {
             var validTransitions = new Dictionary<ShipmentStatus, HashSet<ShipmentStatus>>
-        {
-            { ShipmentStatus.Pending,   new() { ShipmentStatus.PickedUp, ShipmentStatus.Cancelled } },
-            { ShipmentStatus.PickedUp,  new() { ShipmentStatus.InTransit, ShipmentStatus.Cancelled } },
-            { ShipmentStatus.InTransit, new() { ShipmentStatus.Delivered, ShipmentStatus.Cancelled } },
-            { ShipmentStatus.Delivered, new() },
-            { ShipmentStatus.Cancelled, new() }
-        };
+            {
+                { ShipmentStatus.Pending,   new() { ShipmentStatus.PickedUp, ShipmentStatus.Cancelled } },
+                { ShipmentStatus.PickedUp,  new() { ShipmentStatus.InTransit, ShipmentStatus.Cancelled } },
+                { ShipmentStatus.InTransit, new() { ShipmentStatus.Delivered, ShipmentStatus.Cancelled } },
+                { ShipmentStatus.Delivered, new() },
+                { ShipmentStatus.Cancelled, new() }
+            };
 
             if (!validTransitions[current].Contains(next))
-                throw new BusinessRuleException($"Cannot transition shipment from '{current}' to '{next}'.");
+            {
+                throw new BusinessRuleException($"Invalid workflow: Cannot change status from '{current}' to '{next}'.");
+            }
         }
     }
 
-    // ─── Assign Driver ──────────────────────────────────────────────────────────
-
+    // --- Assign Driver ---
+    // Links a driver to a pending shipment and triggers a push notification
     public record AssignDriverCommand(Guid ShipmentId, Guid DriverId) : IRequest<ShipmentDto>;
 
     public class AssignDriverCommandHandler : IRequestHandler<AssignDriverCommand, ShipmentDto>
@@ -186,24 +181,29 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
                 ?? throw new NotFoundException("Shipment", command.ShipmentId);
 
             if (shipment.Status != ShipmentStatus.Pending)
-                throw new BusinessRuleException("Only pending shipments can have a driver assigned.");
+            {
+                throw new BusinessRuleException("Drivers can only be assigned to shipments in 'Pending' status.");
+            }
 
             var driver = await _uow.Repository<User>()
-                .FirstOrDefaultAsync(u => u.Id == command.DriverId && u.Role == Domain.Enums.UserRole.Driver && u.IsActive, ct)
+                .FirstOrDefaultAsync(u => u.Id == command.DriverId && u.Role == UserRole.Driver && u.IsActive, ct)
                 ?? throw new NotFoundException("Driver", command.DriverId);
 
             shipment.DriverId = driver.Id;
             shipment.UpdatedAt = DateTime.UtcNow;
+
             _uow.Repository<Shipment>().Update(shipment);
             await _uow.SaveChangesAsync(ct);
 
-            // Push notification to driver
+            // Notify the driver via FCM
             if (!string.IsNullOrEmpty(driver.FcmToken))
             {
-                await _notifications.SendToDeviceAsync(driver.FcmToken,
-                    "New Shipment Assigned",
-                    $"Shipment {shipment.TrackingNumber} has been assigned to you.",
-                    new Dictionary<string, string> { { "shipmentId", shipment.Id.ToString() } });
+                await _notifications.SendToDeviceAsync(
+                    driver.FcmToken,
+                    "New Assignment",
+                    $"You have been assigned shipment #{shipment.TrackingNumber}.",
+                    new Dictionary<string, string> { { "shipmentId", shipment.Id.ToString() } }
+                );
             }
 
             return _mapper.Map<ShipmentDto>(shipment);

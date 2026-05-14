@@ -1,67 +1,65 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using global::SmartLogistics.Application.Common.Models;
-using global::SmartLogistics.Application.DTOs.Auth;
-using global::SmartLogistics.Application.Features.Auth.Commands;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+using MediatR;
 using SmartLogistics.Application.Common.Models;
 using SmartLogistics.Application.DTOs.Auth;
 using SmartLogistics.Application.Features.Auth.Commands;
 
 namespace SmartLogistics.API.Controllers
 {
-    /// <summary>
-    /// Authentication controller: register, login, token refresh, logout.
-    /// </summary>
     [ApiController]
     [Route("api/auth")]
-    [Produces("application/json")]
     public class AuthController : ControllerBase
     {
         private readonly IMediator _mediator;
 
-        public AuthController(IMediator mediator) => _mediator = mediator;
+        public AuthController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
 
-        /// <summary>Register a new user (Admin or Driver).</summary>
+        // Handles new user registration
         [HttpPost("register")]
         [AllowAnonymous]
-        [ProducesResponseType(typeof(ApiResponse<AuthResponse>), 201)]
-        [ProducesResponseType(typeof(ApiResponse<object>), 400)]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
         {
             var result = await _mediator.Send(new RegisterCommand(request), ct);
-            return StatusCode(201, ApiResponse<AuthResponse>.Created(result, "Registration successful."));
+
+            var response = ApiResponse<AuthResponse>.Created(result, "Account created successfully.");
+            return StatusCode(201, response);
         }
 
-        /// <summary>Login and obtain JWT access + refresh tokens.</summary>
+        // Handles user login and returns JWT tokens
         [HttpPost("login")]
         [AllowAnonymous]
-        [ProducesResponseType(typeof(ApiResponse<AuthResponse>), 200)]
-        [ProducesResponseType(typeof(ApiResponse<object>), 401)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
         {
             var result = await _mediator.Send(new LoginCommand(request), ct);
-            return Ok(ApiResponse<AuthResponse>.Ok(result, "Login successful."));
+
+            var response = ApiResponse<AuthResponse>.Ok(result, "Welcome back! Login successful.");
+            return Ok(response);
         }
 
-        /// <summary>Exchange a refresh token for a new access + refresh token pair.</summary>
+        // Exchanges an expired access token for a new one using a refresh token
         [HttpPost("refresh")]
         [AllowAnonymous]
-        [ProducesResponseType(typeof(ApiResponse<AuthResponse>), 200)]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken ct)
         {
             var result = await _mediator.Send(new RefreshTokenCommand(request.RefreshToken), ct);
-            return Ok(ApiResponse<AuthResponse>.Ok(result));
+
+            var response = ApiResponse<AuthResponse>.Ok(result, "Token refreshed successfully.");
+            return Ok(response);
         }
 
-        /// <summary>Revoke the current refresh token to log out.</summary>
+        // Revokes the refresh token and logs the user out
         [HttpPost("logout")]
         [Authorize]
         public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request, CancellationToken ct)
         {
             await _mediator.Send(new LogoutCommand(request.RefreshToken), ct);
-            return Ok(ApiResponse.Ok("Logged out successfully."));
+
+            var response = ApiResponse.Ok("Session closed. Logged out successfully.");
+            return Ok(response);
         }
     }
 }
