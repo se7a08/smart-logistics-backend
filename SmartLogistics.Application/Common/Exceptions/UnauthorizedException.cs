@@ -6,7 +6,7 @@ namespace SmartLogistics.Application.Common.Exceptions
     public class UnauthorizedException : Exception
     {
         public UnauthorizedException()
-            : base("عفواً، يجب تسجيل الدخول أولاً للوصول إلى هذه البيانات.")
+            : base("Unauthorized access. Please log in first to access this data.")
         {
         }
 

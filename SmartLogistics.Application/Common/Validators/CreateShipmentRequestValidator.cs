@@ -3,52 +3,52 @@ using SmartLogistics.Application.DTOs.Shipments;
 
 namespace SmartLogistics.Application.Common.Validators
 {
-    // كلاس التحقق من صحة بيانات إنشاء شحنة جديدة
+    // Validator class for validating new shipment creation requests
     public class CreateShipmentRequestValidator : AbstractValidator<CreateShipmentRequest>
     {
         public CreateShipmentRequestValidator()
         {
-            // التحقق من بيانات المستلم
+            // Recipient Information Validation
             RuleFor(x => x.RecipientName)
-                .NotEmpty().WithMessage("اسم المستلم مطلوب")
-                .MaximumLength(100).WithMessage("الاسم لا يمكن أن يتجاوز 100 حرف");
+                .NotEmpty().WithMessage("Recipient name is required")
+                .MaximumLength(100).WithMessage("Name cannot exceed 100 characters");
 
             RuleFor(x => x.RecipientPhone)
-                .NotEmpty().WithMessage("رقم موبايل المستلم مطلوب");
+                .NotEmpty().WithMessage("Recipient phone number is required");
 
             RuleFor(x => x.RecipientEmail)
-                .NotEmpty().WithMessage("البريد الإلكتروني مطلوب")
-                .EmailAddress().WithMessage("صيغة البريد الإلكتروني غير صحيحة");
+                .NotEmpty().WithMessage("Email address is required")
+                .EmailAddress().WithMessage("Invalid email address format");
 
-            // التحقق من بيانات العنوان والموقع الجغرافي
+            // Address and Geo-location Validation
             RuleFor(x => x.DeliveryAddress)
-                .NotEmpty().WithMessage("عنوان التوصيل مطلوب")
-                .MaximumLength(500).WithMessage("العنوان طويل جداً");
+                .NotEmpty().WithMessage("Delivery address is required")
+                .MaximumLength(500).WithMessage("Address is too long");
 
             RuleFor(x => x.DeliveryLatitude)
-                .InclusiveBetween(-90, 90).WithMessage("إحداثيات العرض غير صحيحة");
+                .InclusiveBetween(-90, 90).WithMessage("Invalid latitude coordinates");
 
             RuleFor(x => x.DeliveryLongitude)
-                .InclusiveBetween(-180, 180).WithMessage("إحداثيات الطول غير صحيحة");
+                .InclusiveBetween(-180, 180).WithMessage("Invalid longitude coordinates");
 
-            // التحقق من مواصفات الشحنة
+            // Shipment Specifications Validation
             RuleFor(x => x.Weight)
-                .GreaterThan(0).WithMessage("يجب أن يكون وزن الشحنة أكبر من صفر");
+                .GreaterThan(0).WithMessage("Shipment weight must be greater than zero");
 
             RuleFor(x => x.Description)
-                .NotEmpty().WithMessage("وصف الشحنة مطلوب")
-                .MaximumLength(500).WithMessage("الوصف لا يتجاوز 500 حرف");
+                .NotEmpty().WithMessage("Shipment description is required")
+                .MaximumLength(500).WithMessage("Description cannot exceed 500 characters");
 
             RuleFor(x => x.DeclaredValue)
-                .GreaterThanOrEqualTo(0).WithMessage("القيمة المعلنة لا يمكن أن تكون بالسالب");
+                .GreaterThanOrEqualTo(0).WithMessage("Declared value cannot be negative");
 
-            // التحقق من مسار الشحنة
+            // Route Validation
             RuleFor(x => x.OriginWarehouseId)
-                .NotEmpty().WithMessage("يجب تحديد مخزن القيام");
+                .NotEmpty().WithMessage("Origin warehouse must be specified");
 
             RuleFor(x => x.DestinationWarehouseId)
-                .NotEmpty().WithMessage("يجب تحديد مخزن الوصول")
-                .NotEqual(x => x.OriginWarehouseId).WithMessage("عفواً، مخزن الوصول يجب أن يكون مختلفاً عن مخزن القيام");
+                .NotEmpty().WithMessage("Destination warehouse must be specified")
+                .NotEqual(x => x.OriginWarehouseId).WithMessage("Destination warehouse must be different from the origin warehouse");
         }
     }
 }

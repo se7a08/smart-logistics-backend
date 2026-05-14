@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SmartLogistics.Application.Common.Models
 {
-    // كلاس موحد للرد على أي Request (Wrapper) عشان نسهل الشغل على بتاع الـ Mobile
+    // A unified wrapper class for all API responses to simplify integration for the mobile team
     public class ApiResponse<T>
     {
         public bool Success { get; set; }
@@ -12,8 +12,8 @@ namespace SmartLogistics.Application.Common.Models
         public List<string>? Errors { get; set; }
         public int StatusCode { get; set; }
 
-        // رد في حالة النجاح
-        public static ApiResponse<T> Ok(T data, string message = "تمت العملية بنجاح")
+        // Standard success response
+        public static ApiResponse<T> Ok(T data, string message = "Operation completed successfully")
         {
             return new ApiResponse<T>
             {
@@ -24,8 +24,8 @@ namespace SmartLogistics.Application.Common.Models
             };
         }
 
-        // رد في حالة إنشاء سجل جديد (Created)
-        public static ApiResponse<T> Created(T data, string message = "تم الإضافة بنجاح")
+        // Response for successful resource creation
+        public static ApiResponse<T> Created(T data, string message = "Resource added successfully")
         {
             return new ApiResponse<T>
             {
@@ -36,7 +36,7 @@ namespace SmartLogistics.Application.Common.Models
             };
         }
 
-        // رد في حالة الفشل (Bad Request مثلاً)
+        // Response for operation failure (e.g., Bad Request)
         public static ApiResponse<T> Fail(string message, int statusCode = 400, List<string>? errors = null)
         {
             return new ApiResponse<T>
@@ -48,8 +48,8 @@ namespace SmartLogistics.Application.Common.Models
             };
         }
 
-        // رد في حالة عدم وجود البيانات
-        public static ApiResponse<T> NotFound(string message = "العنصر المطلوب غير موجود")
+        // Response when the requested item is not found
+        public static ApiResponse<T> NotFound(string message = "The requested resource was not found")
         {
             return new ApiResponse<T>
             {
@@ -59,8 +59,8 @@ namespace SmartLogistics.Application.Common.Models
             };
         }
 
-        // رد في حالة عدم وجود صلاحية
-        public static ApiResponse<T> Unauthorized(string message = "عفواً، غير مصرح لك بالوصول")
+        // Response for unauthorized access
+        public static ApiResponse<T> Unauthorized(string message = "Access denied. You are not authorized")
         {
             return new ApiResponse<T>
             {
@@ -71,7 +71,7 @@ namespace SmartLogistics.Application.Common.Models
         }
     }
 
-    // كلاس فرعي للعمليات اللي مش بترجع داتا (زي الـ Delete أو الـ Update)
+    // Derived class for operations that don't return data (e.g., Delete or Update)
     public class ApiResponse : ApiResponse<object>
     {
         public static ApiResponse Ok(string message = "Success")

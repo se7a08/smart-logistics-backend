@@ -6,7 +6,7 @@ namespace SmartLogistics.Application.Common.Exceptions
     public class ForbiddenException : Exception
     {
         public ForbiddenException()
-            : base("عفواً، ليس لديك صلاحية للقيام بهذا الإجراء.")
+            : base("Access denied. You do not have permission to perform this action.")
         {
         }
 

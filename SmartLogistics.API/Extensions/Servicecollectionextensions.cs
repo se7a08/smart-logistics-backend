@@ -101,13 +101,13 @@ namespace SmartLogistics.API.Extensions
                 {
                     Title = "Smart Logistics API",
                     Version = "v1",
-                    Description = "نظام إدارة الشحنات والخدمات اللوجستية - مشروع التخرج"
+                    Description = "Shipment Management and Logistics System"
                 });
 
                 // إضافة دعم الـ Authorization في Swagger
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Description = "ضع التوكن هنا بالشكل التالي: Bearer {token}",
+                    Description = "Enter token here as: Bearer {token}",
                     Name = "Authorization",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.ApiKey,

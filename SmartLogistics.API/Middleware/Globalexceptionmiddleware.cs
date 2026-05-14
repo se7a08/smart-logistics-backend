@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace SmartLogistics.API.Middleware
 {
-    // ميدل وير عالمي لمعالجة أي أخطاء تحصل في السيستم وتوحيد شكل الرد
+    // Global middleware to handle all system exceptions and unify the response format
     public class GlobalExceptionMiddleware
     {
         private readonly RequestDelegate _next;
@@ -23,12 +23,12 @@ namespace SmartLogistics.API.Middleware
         {
             try
             {
-                // حاول تنفذ الطلب عادي
+                // Attempt to process the request normally
                 await _next(context);
             }
             catch (Exception ex)
             {
-                // لو حصل أي Error، روح للدالة اللي بتعالجه
+                // If any error occurs, proceed to the exception handler
                 await HandleExceptionAsync(context, ex);
             }
         }
@@ -36,10 +36,10 @@ namespace SmartLogistics.API.Middleware
         private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             var statusCode = HttpStatusCode.InternalServerError;
-            var message = "حدث خطأ غير متوقع في الخادم.";
+            var message = "An unexpected error occurred on the server.";
             List<string>? errors = null;
 
-            // تحديد نوع الخطأ وتغيير الـ Status Code والرسالة بناءً عليه
+            // Determine the exception type and update the Status Code and message accordingly
             if (exception is NotFoundException notFoundEx)
             {
                 statusCode = HttpStatusCode.NotFound;
@@ -63,12 +63,13 @@ namespace SmartLogistics.API.Middleware
             else if (exception is SmartLogistics.Application.Common.Exceptions.ValidationException valEx)
             {
                 statusCode = HttpStatusCode.BadRequest;
-                message = "بيانات المدخلات غير سليمة.";
-                // تجميع كل أخطاء الـ Validation في لستة واحدة
+                message = "Input validation failed.";
+
+                // Aggregate all validation errors into a single list
                 errors = valEx.Errors.SelectMany(x => x.Value.Select(err => $"{x.Key}: {err}")).ToList();
             }
 
-            // تسجيل الخطأ في الـ Logs
+            // Log the exception
             if (statusCode == HttpStatusCode.InternalServerError)
             {
                 _logger.LogError(exception, "Unhandled Exception: {Msg}", exception.Message);
@@ -78,7 +79,7 @@ namespace SmartLogistics.API.Middleware
                 _logger.LogWarning("Handled Exception: {Msg} (Status: {Code})", message, (int)statusCode);
             }
 
-            // إعداد الرد النهائي اللي هيرجع للمستخدم
+            // Prepare the final response for the user
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)statusCode;
 

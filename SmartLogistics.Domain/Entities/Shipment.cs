@@ -8,10 +8,7 @@ using System.Threading.Tasks;
 
 namespace SmartLogistics.Domain.Entities
 {
-    /// <summary>
-    /// Core shipment entity representing a logistics delivery order.
-    /// Contains QR code, status tracking, and full lifecycle management.
-    /// </summary>
+    
     public class Shipment : BaseEntity
     {
         public string TrackingNumber { get; set; } = string.Empty;

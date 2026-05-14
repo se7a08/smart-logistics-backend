@@ -6,9 +6,7 @@ using System.Threading.Tasks;
 
 namespace SmartLogistics.Domain.Enums
 {
-    /// <summary>
-    /// Shipment lifecycle statuses.
-    /// </summary>
+   
     public enum ShipmentStatus
     {
         Pending = 0,

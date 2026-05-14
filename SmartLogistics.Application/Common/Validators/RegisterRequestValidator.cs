@@ -3,32 +3,32 @@ using SmartLogistics.Application.DTOs.Auth;
 
 namespace SmartLogistics.Application.Common.Validators
 {
-    // فحص صحة بيانات إنشاء حساب جديد في النظام
+    // Validator for new user registration data in the system
     public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
     {
         public RegisterRequestValidator()
         {
-            // الاسم بالكامل
+            // Full Name
             RuleFor(x => x.FullName)
-                .NotEmpty().WithMessage("الاسم بالكامل مطلوب")
-                .MaximumLength(100).WithMessage("الاسم لا يجب أن يتجاوز 100 حرف");
+                .NotEmpty().WithMessage("Full name is required")
+                .MaximumLength(100).WithMessage("Full name must not exceed 100 characters");
 
-            // البريد الإلكتروني
+            // Email Address
             RuleFor(x => x.Email)
-                .NotEmpty().WithMessage("البريد الإلكتروني مطلوب")
-                .EmailAddress().WithMessage("صيغة البريد الإلكتروني غير صحيحة");
+                .NotEmpty().WithMessage("Email is required")
+                .EmailAddress().WithMessage("Invalid email address format");
 
-            // كلمة المرور (شروط القوة)
+            // Password (Complexity Requirements)
             RuleFor(x => x.Password)
-                .NotEmpty().WithMessage("كلمة المرور مطلوبة")
-                .MinimumLength(8).WithMessage("كلمة المرور يجب ألا تقل عن 8 رموز")
-                .Matches("[A-Z]").WithMessage("يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل (A-Z)")
-                .Matches("[0-9]").WithMessage("يجب أن تحتوي كلمة المرور على رقم واحد على الأقل (0-9)");
+                .NotEmpty().WithMessage("Password is required")
+                .MinimumLength(8).WithMessage("Password must be at least 8 characters long")
+                .Matches("[A-Z]").WithMessage("Password must contain at least one uppercase letter (A-Z)")
+                .Matches("[0-9]").WithMessage("Password must contain at least one number (0-9)");
 
-            // رقم الهاتف (Validation دولي)
+            // Phone Number (International Validation)
             RuleFor(x => x.PhoneNumber)
-                .NotEmpty().WithMessage("رقم الهاتف مطلوب")
-                .Matches(@"^\+?[1-9]\d{6,14}$").WithMessage("صيغة رقم الهاتف غير صحيحة (مثال: +2010...)");
+                .NotEmpty().WithMessage("Phone number is required")
+                .Matches(@"^\+?[1-9]\d{6,14}$").WithMessage("Invalid phone number format (Example: +2010...)");
         }
     }
 }

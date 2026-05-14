@@ -3,19 +3,19 @@ using SmartLogistics.Application.DTOs.Auth;
 
 namespace SmartLogistics.Application.Common.Validators
 {
-    // فحص صحة بيانات تسجيل الدخول
+    // Validator for login request data
     public class LoginRequestValidator : AbstractValidator<LoginRequest>
     {
         public LoginRequestValidator()
         {
-            // التحقق من البريد الإلكتروني
+            // Email validation
             RuleFor(x => x.Email)
-                .NotEmpty().WithMessage("البريد الإلكتروني مطلوب")
-                .EmailAddress().WithMessage("صيغة البريد الإلكتروني غير صحيحة");
+                .NotEmpty().WithMessage("Email is required")
+                .EmailAddress().WithMessage("Invalid email address format");
 
-            // التحقق من كلمة المرور
+            // Password validation
             RuleFor(x => x.Password)
-                .NotEmpty().WithMessage("كلمة المرور مطلوبة");
+                .NotEmpty().WithMessage("Password is required");
         }
     }
 }

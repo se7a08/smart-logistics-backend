@@ -7,7 +7,7 @@ namespace SmartLogistics.Application.Common.Exceptions
     {
         // الـ Constructor ده بنبعت له اسم الجدول والـ ID اللي كنا بندور عليه
         public NotFoundException(string name, object key)
-            : base($"عفواً، الـ {name} اللي رقمه ({key}) مش موجود في السيستم.")
+            : base($"{name} with ID ({key}) was not found in the system.")
         {
         }
 

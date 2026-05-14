@@ -39,13 +39,13 @@ namespace SmartLogistics.Infrastructure.Data.Seeding
 
             context.Users.AddRange(admin, driver1);
 
-            // إضافة مخازن في محافظة المنيا
+            // Adding warehouses in Minya Governorate
             var warehouse1 = new Warehouse
             {
                 Id = Guid.NewGuid(),
-                Name = "مخزن المنيا الرئيسي",
+                Name = "Minya Main Warehouse",
                 Code = "MIN-MAIN-01",
-                Address = "المنيا - شارع طه حسين",
+                Address = "Minya - Taha Hussein Street",
                 City = "Minya",
                 Capacity = 1000,
                 ManagerName = "Fady Zaki",
@@ -55,10 +55,10 @@ namespace SmartLogistics.Infrastructure.Data.Seeding
             var warehouse2 = new Warehouse
             {
                 Id = Guid.NewGuid(),
-                Name = "فرع ملوي",
-                Code = "MAL-BRANCH-02", 
-                Address = "ملوي - خلف المحطة",
-                City = "Malwi",
+                Name = "Mallawi Branch",
+                Code = "MAL-BRANCH-02",
+                Address = "Mallawi - Behind the Station",
+                City = "Mallawi",
                 Capacity = 1500,
                 ManagerName = "Mina Salah",
                 IsActive = true

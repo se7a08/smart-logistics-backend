@@ -1,8 +1,6 @@
 ﻿namespace SmartLogistics.Domain.Enums
 {
-    /// <summary>
-    /// Notification types for FCM push messages.
-    /// </summary>
+   
     public enum NotificationType
     {
         ShipmentAssigned = 0,

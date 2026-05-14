@@ -3,44 +3,44 @@ using SmartLogistics.Application.DTOs.Warehouses;
 
 namespace SmartLogistics.Application.Common.Validators
 {
-    // فحص صحة بيانات إضافة مخزن/مستودع جديد للسيستم
+    // Validator for adding a new warehouse/store to the system
     public class CreateWarehouseRequestValidator : AbstractValidator<CreateWarehouseRequest>
     {
         public CreateWarehouseRequestValidator()
         {
-            // التحقق من هوية المخزن
+            // Warehouse Identity Validation
             RuleFor(x => x.Name)
-                .NotEmpty().WithMessage("اسم المخزن مطلوب")
-                .MaximumLength(200).WithMessage("الاسم طويل جداً (أقصى حد 200 حرف)");
+                .NotEmpty().WithMessage("Warehouse name is required")
+                .MaximumLength(200).WithMessage("Name is too long (maximum 200 characters)");
 
             RuleFor(x => x.Code)
-                .NotEmpty().WithMessage("كود المخزن مطلوب")
-                .MaximumLength(20).WithMessage("الكود لا يجب أن يتخطى 20 حرف")
-                .Matches("^[A-Z0-9-]+$").WithMessage("الكود يجب أن يحتوي على حروف كبيرة وأرقام وعلامة (-) فقط");
+                .NotEmpty().WithMessage("Warehouse code is required")
+                .MaximumLength(20).WithMessage("Code must not exceed 20 characters")
+                .Matches("^[A-Z0-9-]+$").WithMessage("Code must contain only uppercase letters, numbers, and hyphens (-)");
 
-            // الموقع الجغرافي
+            // Geographic Location
             RuleFor(x => x.Address)
-                .NotEmpty().WithMessage("عنوان المخزن بالتفصيل مطلوب");
+                .NotEmpty().WithMessage("Detailed warehouse address is required");
 
             RuleFor(x => x.City)
-                .NotEmpty().WithMessage("المحافظة/المدينة مطلوبة");
+                .NotEmpty().WithMessage("City/Governorate is required");
 
             RuleFor(x => x.Latitude)
-                .InclusiveBetween(-90, 90).WithMessage("إحداثيات العرض غير صحيحة");
+                .InclusiveBetween(-90, 90).WithMessage("Invalid latitude coordinates");
 
             RuleFor(x => x.Longitude)
-                .InclusiveBetween(-180, 180).WithMessage("إحداثيات الطول غير صحيحة");
+                .InclusiveBetween(-180, 180).WithMessage("Invalid longitude coordinates");
 
-            // السعة التشغيلية
+            // Operational Capacity
             RuleFor(x => x.Capacity)
-                .GreaterThan(0).WithMessage("سعة المخزن يجب أن تكون أكبر من صفر");
+                .GreaterThan(0).WithMessage("Warehouse capacity must be greater than zero");
 
-            // بيانات المسؤول عن المخزن
+            // Warehouse Manager Information
             RuleFor(x => x.ManagerName)
-                .NotEmpty().WithMessage("اسم مدير المخزن مطلوب");
+                .NotEmpty().WithMessage("Warehouse manager name is required");
 
             RuleFor(x => x.ManagerPhone)
-                .NotEmpty().WithMessage("رقم تليفون المدير مطلوب");
+                .NotEmpty().WithMessage("Manager phone number is required");
         }
     }
 }

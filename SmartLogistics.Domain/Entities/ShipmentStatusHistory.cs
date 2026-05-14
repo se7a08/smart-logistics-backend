@@ -8,9 +8,7 @@ using System.Threading.Tasks;
 
 namespace SmartLogistics.Domain.Entities
 {
-    /// <summary>
-    /// Immutable record of every status change in a shipment's lifecycle.
-    /// </summary>
+    
     public class ShipmentStatusHistory : BaseEntity
     {
         public Guid ShipmentId { get; set; }
@@ -23,10 +21,7 @@ namespace SmartLogistics.Domain.Entities
         public Shipment Shipment { get; set; } = null!;
     }
 
-    /// <summary>
-    /// Real-time GPS location record for a driver.
-    /// Inserted on each location update from the driver's app.
-    /// </summary>
+    
     public class DriverLocation : BaseEntity
     {
         public Guid DriverId { get; set; }
@@ -42,9 +37,7 @@ namespace SmartLogistics.Domain.Entities
         public User Driver { get; set; } = null!;
     }
 
-    /// <summary>
-    /// Push notification record for audit and history tracking.
-    /// </summary>
+  
     public class Notification : BaseEntity
     {
         public Guid UserId { get; set; }
@@ -62,10 +55,7 @@ namespace SmartLogistics.Domain.Entities
         public User User { get; set; } = null!;
     }
 
-    /// <summary>
-    /// JWT refresh token for secure session management.
-    /// Implements rotation strategy - each refresh generates a new token.
-    /// </summary>
+   
     public class RefreshToken : BaseEntity
     {
         public Guid UserId { get; set; }

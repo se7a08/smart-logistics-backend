@@ -10,13 +10,13 @@ namespace SmartLogistics.Application.Common.Exceptions
         public IDictionary<string, string[]> Errors { get; }
 
         public ValidationException()
-            : base("حدث خطأ واحد أو أكثر أثناء التحقق من البيانات.")
+            : base("One or more validation failures have occurred.")
         {
             Errors = new Dictionary<string, string[]>();
         }
 
         public ValidationException(IDictionary<string, string[]> errors)
-            : base("عفواً، البيانات المدخلة غير صحيحة.")
+            : base("Validation failed. The provided data is invalid.")
         {
             Errors = errors;
         }

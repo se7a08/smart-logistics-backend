@@ -8,9 +8,7 @@ using System.Threading.Tasks;
 
 namespace SmartLogistics.Domain.Entities
 {
-    /// <summary>
-    /// Application user entity supporting both Admin and Driver roles.
-    /// </summary>
+    
     public class User : BaseEntity
     {
         public string FullName { get; set; } = string.Empty;

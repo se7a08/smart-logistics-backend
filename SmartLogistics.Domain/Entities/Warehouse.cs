@@ -7,9 +7,7 @@ using System.Threading.Tasks;
 
 namespace SmartLogistics.Domain.Entities
 {
-    /// <summary>
-    /// Warehouse entity representing a physical logistics hub.
-    /// </summary>
+   
     public class Warehouse : BaseEntity
     {
         public string Name { get; set; } = string.Empty;

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace SmartLogistics.API.Middleware
 {
-    // ميدل وير لتسجيل كل طلب (Request) بيدخل السيستم والرد (Response) اللي بيخرج منه
+    // Middleware to log every incoming Request and its corresponding outgoing Response
     public class RequestLoggingMiddleware
     {
         private readonly RequestDelegate _next;
@@ -18,24 +18,24 @@ namespace SmartLogistics.API.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
-            // بنبدأ عداد الوقت عشان نعرف الـ Request أخد وقت قد إيه
+            // Start a timer to measure the request execution time
             var timer = Stopwatch.StartNew();
             var traceId = context.TraceIdentifier;
 
-            // تسجيل الدخول (Incoming Request)
+            // Log incoming request details
             _logger.LogInformation("Incoming Request: {Method} {Path} [TraceId: {TraceId}]",
                 context.Request.Method,
                 context.Request.Path,
                 traceId);
 
-            // بنمرر الطلب للي بعده في الـ Pipeline
+            // Pass the request to the next middleware in the pipeline
             await _next(context);
 
             timer.Stop();
             var elapsedMs = timer.ElapsedMilliseconds;
             var statusCode = context.Response.StatusCode;
 
-            // بنحدد درجة الأهمية (Level) بناءً على حالة الرد
+            // Determine the log level based on the response status code
             if (statusCode >= 500)
             {
                 _logger.LogError("Request Error: {Method} {Path} responded {StatusCode} in {Elapsed}ms",
