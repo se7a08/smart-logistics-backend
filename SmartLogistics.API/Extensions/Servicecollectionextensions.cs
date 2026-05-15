@@ -15,6 +15,7 @@ using Microsoft.OpenApi.Models;
 using SmartLogistics.Application.Common.Behaviors;
 using System.Text;
 using SmartLogistics.Infrastructure.Hubs;
+using Microsoft.Extensions.Options;
 
 namespace SmartLogistics.API.Extensions
 {
@@ -138,9 +139,26 @@ namespace SmartLogistics.API.Extensions
                     policy.AllowAnyOrigin()
                           .AllowAnyMethod()
                           .AllowAnyHeader());
+
+
+                options.AddPolicy("Production", policy =>
+                {
+                    var origins = configuration
+                        .GetSection("Cors:AllowedOrigins")
+                        .Get<string[]>() ?? [];
+                    
+
+                    policy
+                        .WithOrigins(origins)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                   
+                });
             });
 
-            return services;
+
+                return services;
         }
     }
 }
