@@ -14,7 +14,7 @@ namespace SmartLogistics.Domain.Entities
         public string TrackingNumber { get; set; } = string.Empty;
         public string QrCode { get; set; } = string.Empty;
 
-        // Recipient details
+        
         public string RecipientName { get; set; } = string.Empty;
         public string RecipientPhone { get; set; } = string.Empty;
         public string RecipientEmail { get; set; } = string.Empty;
@@ -22,29 +22,25 @@ namespace SmartLogistics.Domain.Entities
         public double DeliveryLatitude { get; set; }
         public double DeliveryLongitude { get; set; }
 
-        // Package details
+
         public decimal Weight { get; set; }
         public string Description { get; set; } = string.Empty;
         public decimal DeclaredValue { get; set; }
         public bool IsFragile { get; set; }
 
-        // Status and lifecycle
         public ShipmentStatus Status { get; set; } = ShipmentStatus.Pending;
         public DateTime? PickedUpAt { get; set; }
         public DateTime? DeliveredAt { get; set; }
         public DateTime? EstimatedDelivery { get; set; }
 
-        // Delivery proof
         public string? DeliveryNotes { get; set; }
         public string? DeliveryPhotoUrl { get; set; }
         public bool QrVerified { get; set; } = false;
 
-        // Foreign keys
         public Guid? DriverId { get; set; }
         public Guid OriginWarehouseId { get; set; }
         public Guid DestinationWarehouseId { get; set; }
 
-        // Navigation Properties
         public User? Driver { get; set; }
         public Warehouse OriginWarehouse { get; set; } = null!;
         public Warehouse DestinationWarehouse { get; set; } = null!;

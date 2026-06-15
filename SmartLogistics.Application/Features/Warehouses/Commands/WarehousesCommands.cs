@@ -7,8 +7,7 @@ using SmartLogistics.Domain.Interfaces;
 
 namespace SmartLogistics.Application.Features.Warehouses.Commands
 {
-    // --- Create Warehouse ---
-    // Establishes a new logistics hub in the network
+ 
     public record CreateWarehouseCommand(CreateWarehouseRequest Request) : IRequest<WarehouseDto>;
 
     public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseCommand, WarehouseDto>
@@ -26,7 +25,6 @@ namespace SmartLogistics.Application.Features.Warehouses.Commands
         {
             var req = command.Request;
 
-            // Human Touch: Check for unique codes to prevent administrative confusion
             var isCodeTaken = await _uow.Repository<Warehouse>().AnyAsync(w => w.Code == req.Code, ct);
             if (isCodeTaken)
             {
@@ -36,7 +34,7 @@ namespace SmartLogistics.Application.Features.Warehouses.Commands
             var warehouse = new Warehouse
             {
                 Name = req.Name,
-                Code = req.Code.ToUpper(), // Standardize code to uppercase for consistency
+                Code = req.Code.ToUpper(),
                 Address = req.Address,
                 City = req.City,
                 Country = req.Country,
@@ -45,7 +43,7 @@ namespace SmartLogistics.Application.Features.Warehouses.Commands
                 Capacity = req.Capacity,
                 ManagerName = req.ManagerName,
                 ManagerPhone = req.ManagerPhone,
-                IsActive = true, // New facilities are active by default
+                IsActive = true, 
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -56,8 +54,7 @@ namespace SmartLogistics.Application.Features.Warehouses.Commands
         }
     }
 
-    // --- Update Warehouse ---
-    // Modifies existing facility details or updates management contact information
+    
     public record UpdateWarehouseCommand(Guid Id, UpdateWarehouseRequest Request) : IRequest<WarehouseDto>;
 
     public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseCommand, WarehouseDto>
@@ -79,7 +76,6 @@ namespace SmartLogistics.Application.Features.Warehouses.Commands
 
             var req = command.Request;
 
-            // Updating core details with operational audit fields
             warehouse.Name = req.Name;
             warehouse.Address = req.Address;
             warehouse.City = req.City;

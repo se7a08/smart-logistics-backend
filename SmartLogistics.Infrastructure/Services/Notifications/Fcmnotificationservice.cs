@@ -7,7 +7,7 @@ using SmartLogistics.Domain.Interfaces;
 
 namespace SmartLogistics.Infrastructure.Services.Notifications
 {
-    // خدمة الـ Firebase عشان نبعت Push Notifications للموبايل
+    
     public class FcmNotificationService : INotificationService
     {
         private readonly ILogger<FcmNotificationService> _logger;
@@ -17,7 +17,7 @@ namespace SmartLogistics.Infrastructure.Services.Notifications
         {
             _logger = logger;
 
-            // التأكد إن الـ Firebase اتعمل له Initialize مرة واحدة بس في البرنامج
+            
             if (FirebaseApp.DefaultInstance == null)
             {
                 var path = config["Firebase:CredentialFilePath"];
@@ -33,7 +33,7 @@ namespace SmartLogistics.Infrastructure.Services.Notifications
             _messaging = FirebaseMessaging.DefaultInstance;
         }
 
-        // إرسال لجهاز واحد (مثلاً سواق معين)
+        
         public async Task SendToDeviceAsync(string token, string title, string messageBody, Dictionary<string, string>? extraData = null)
         {
             try
@@ -45,7 +45,7 @@ namespace SmartLogistics.Infrastructure.Services.Notifications
                     Data = extraData ?? new Dictionary<string, string>(),
                     Android = new AndroidConfig
                     {
-                        Priority = Priority.High // بنخلي الأولوية عالية عشان الإشعار يوصل فوراً
+                        Priority = Priority.High 
                     }
                 };
 
@@ -58,7 +58,6 @@ namespace SmartLogistics.Infrastructure.Services.Notifications
             }
         }
 
-        // إرسال لمجموعة (Topic) زي "المناديب" أو "العملاء"
         public async Task SendToTopicAsync(string topicName, string title, string messageBody, Dictionary<string, string>? extraData = null)
         {
             try
@@ -79,7 +78,6 @@ namespace SmartLogistics.Infrastructure.Services.Notifications
             }
         }
 
-        // إرسال لكذا جهاز في نفس الوقت
         public async Task SendToMultipleDevicesAsync(IEnumerable<string> tokens, string title, string messageBody, Dictionary<string, string>? extraData = null)
         {
             var tokensList = tokens.ToList();

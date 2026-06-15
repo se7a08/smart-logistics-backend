@@ -2,7 +2,7 @@
 
 namespace SmartLogistics.Application.Common.Exceptions
 {
-    // Exception بيترمي لما المستخدم يحاول يعمل حاجة مش مسموحة للصلاحيات بتاعته (Role)
+    
     public class ForbiddenException : Exception
     {
         public ForbiddenException()

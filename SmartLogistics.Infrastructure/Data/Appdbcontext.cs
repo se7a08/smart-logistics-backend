@@ -115,7 +115,6 @@ namespace SmartLogistics.Infrastructure.Data
                 }
                 else if (entry.State == EntityState.Deleted)
                 {
-                    // تحويل المسح الحقيقي لمسح منطقي (Soft Delete)
                     entry.State = EntityState.Modified;
                     entry.Entity.IsDeleted = true;
                     entry.Entity.DeletedAt = DateTime.UtcNow;

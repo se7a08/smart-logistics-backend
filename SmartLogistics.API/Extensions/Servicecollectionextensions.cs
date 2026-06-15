@@ -21,33 +21,28 @@ namespace SmartLogistics.API.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        // تسجيل خدمات الـ Infrastructure (الداتا بيز، المستودعات، والخدمات الخارجية)
+        
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
-            // إعداد الاتصال بقاعدة البيانات SQL Server
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection"),
                     sql => sql.MigrationsAssembly("SmartLogistics.Infrastructure")
                               .EnableRetryOnFailure(3)));
 
-            // تسجيل الـ Unit of Work والـ Repositories
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            // تسجيل خدمات الـ Domain والـ Logic
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
             services.AddScoped<IQrCodeService, QrCodeService>();
             services.AddScoped<INotificationService, FcmNotificationService>();
-            services.AddScoped<ITrackingService, TrackingService>(); // لو لسه مخلصتوش ممكن تقفله مؤقتاً
+            services.AddScoped<ITrackingService, TrackingService>(); 
 
             return services;
         }
 
-        // تسجيل خدمات الـ Application (MediatR, AutoMapper, FluentValidation)
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
-            // إعداد MediatR مع الـ Behaviors الخاصة بالـ Validation والـ Performance
             services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssembly(typeof(MappingProfile).Assembly);
@@ -55,16 +50,14 @@ namespace SmartLogistics.API.Extensions
                 cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
             });
 
-            // إعداد AutoMapper لتحويل الـ Entities لـ DTOs
+            
             services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
-            // إعداد FluentValidation للتحقق من صحة البيانات تلقائياً
             services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
             return services;
         }
 
-        // إعداد حماية الـ API باستخدام JWT
         public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
             var key = Encoding.UTF8.GetBytes(configuration["Jwt:Secret"] ?? "SmartLogisticsSuperSecretKey2026");
@@ -93,7 +86,6 @@ namespace SmartLogistics.API.Extensions
             return services;
         }
 
-        // إعداد Swagger عشان نقدر نجرب الـ API بسهولة
         public static IServiceCollection AddSwaggerDocumentation(this IServiceCollection services)
         {
             services.AddSwaggerGen(c =>
@@ -105,7 +97,6 @@ namespace SmartLogistics.API.Extensions
                     Description = "Shipment Management and Logistics System"
                 });
 
-                // إضافة دعم الـ Authorization في Swagger
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Description = "Enter token here as: Bearer {token}",
@@ -130,7 +121,6 @@ namespace SmartLogistics.API.Extensions
             return services;
         }
 
-        // إعداد الـ CORS عشان الـ Flutter App يقدر يكلم الـ API
         public static IServiceCollection AddCorsPolicy(this IServiceCollection services,IConfiguration configuration)
         {
             services.AddCors(options =>

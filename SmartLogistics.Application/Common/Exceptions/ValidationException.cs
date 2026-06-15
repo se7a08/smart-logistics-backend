@@ -3,10 +3,9 @@ using System.Collections.Generic;
 
 namespace SmartLogistics.Application.Common.Exceptions
 {
-    // Exception مخصص لأخطاء المدخلات (التحقق من صحة البيانات)
+    
     public class ValidationException : Exception
     {
-        // قاموس بيشيل اسم الحقل اللي فيه مشكلة وقائمة بالأخطاء اللي تخصه
         public IDictionary<string, string[]> Errors { get; }
 
         public ValidationException()

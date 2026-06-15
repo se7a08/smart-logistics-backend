@@ -2,7 +2,6 @@
 
 namespace SmartLogistics.Application.Common.Exceptions
 {
-    // Exception بيترمي لما تفشل عملية التحقق من الهوية (مثلاً توكن منتهي أو يوزر نيم غلط)
     public class UnauthorizedException : Exception
     {
         public UnauthorizedException()

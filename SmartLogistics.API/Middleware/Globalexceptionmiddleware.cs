@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace SmartLogistics.API.Middleware
 {
-    // Global middleware to handle all system exceptions and unify the response format
+   
     public class GlobalExceptionMiddleware
     {
         private readonly RequestDelegate _next;
@@ -23,12 +23,11 @@ namespace SmartLogistics.API.Middleware
         {
             try
             {
-                // Attempt to process the request normally
                 await _next(context);
             }
             catch (Exception ex)
             {
-                // If any error occurs, proceed to the exception handler
+             
                 await HandleExceptionAsync(context, ex);
             }
         }
@@ -39,7 +38,6 @@ namespace SmartLogistics.API.Middleware
             var message = "An unexpected error occurred on the server.";
             List<string>? errors = null;
 
-            // Determine the exception type and update the Status Code and message accordingly
             if (exception is NotFoundException notFoundEx)
             {
                 statusCode = HttpStatusCode.NotFound;
@@ -65,11 +63,10 @@ namespace SmartLogistics.API.Middleware
                 statusCode = HttpStatusCode.BadRequest;
                 message = "Input validation failed.";
 
-                // Aggregate all validation errors into a single list
+                
                 errors = valEx.Errors.SelectMany(x => x.Value.Select(err => $"{x.Key}: {err}")).ToList();
             }
 
-            // Log the exception
             if (statusCode == HttpStatusCode.InternalServerError)
             {
                 _logger.LogError(exception, "Unhandled Exception: {Msg}", exception.Message);
@@ -79,7 +76,6 @@ namespace SmartLogistics.API.Middleware
                 _logger.LogWarning("Handled Exception: {Msg} (Status: {Code})", message, (int)statusCode);
             }
 
-            // Prepare the final response for the user
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)statusCode;
 

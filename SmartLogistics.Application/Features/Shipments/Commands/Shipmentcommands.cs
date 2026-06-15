@@ -8,8 +8,7 @@ using SmartLogistics.Domain.Interfaces;
 
 namespace SmartLogistics.Application.Features.Shipments.Commands
 {
-    // --- Create Shipment ---
-    // Initiates a new shipment record and generates its unique tracking and QR code
+   
     public record CreateShipmentCommand(CreateShipmentRequest Request) : IRequest<ShipmentDto>;
 
     public class CreateShipmentCommandHandler : IRequestHandler<CreateShipmentCommand, ShipmentDto>
@@ -29,7 +28,7 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
         {
             var req = command.Request;
 
-            // Validate that both origin and destination warehouses exist and are operational
+            
             var originExists = await _uow.Repository<Warehouse>().AnyAsync(w => w.Id == req.OriginWarehouseId && w.IsActive, ct);
             var destExists = await _uow.Repository<Warehouse>().AnyAsync(w => w.Id == req.DestinationWarehouseId && w.IsActive, ct);
 
@@ -55,12 +54,11 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
                 Status = ShipmentStatus.Pending
             };
 
-            // Link a unique QR code to the shipment for secure delivery verification
+          
             shipment.QrCode = _qrService.GenerateQrCode(shipment.Id);
 
             await _uow.Repository<Shipment>().AddAsync(shipment, ct);
 
-            // Initialize shipment history trail
             await _uow.Repository<ShipmentStatusHistory>().AddAsync(new ShipmentStatusHistory
             {
                 ShipmentId = shipment.Id,
@@ -70,7 +68,6 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
 
             await _uow.SaveChangesAsync(ct);
 
-            // Fetch the created shipment with its navigation properties for a complete DTO response
             var created = await _uow.Repository<Shipment>()
                 .FirstOrDefaultAsync(s => s.Id == shipment.Id, ct)
                 ?? throw new NotFoundException("Shipment", shipment.Id);
@@ -86,8 +83,7 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
         }
     }
 
-    // --- Update Shipment Status ---
-    // Handles manual status updates and maintains a geospatial history log
+    
     public record UpdateShipmentStatusCommand(Guid ShipmentId, Guid UserId, UpdateShipmentStatusRequest Request) : IRequest<ShipmentDto>;
 
     public class UpdateShipmentStatusCommandHandler : IRequestHandler<UpdateShipmentStatusCommand, ShipmentDto>
@@ -109,7 +105,6 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
                 .FirstOrDefaultAsync(s => s.Id == command.ShipmentId && !s.IsDeleted, ct)
                 ?? throw new NotFoundException("Shipment", command.ShipmentId);
 
-            // Logic Check: Ensure the status move follows the logistics workflow
             ValidateStatusTransition(shipment.Status, command.Request.Status);
 
             shipment.Status = command.Request.Status;
@@ -121,7 +116,6 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
 
             _uow.Repository<Shipment>().Update(shipment);
 
-            // Append to history with current coordinates if provided
             await _uow.Repository<ShipmentStatusHistory>().AddAsync(new ShipmentStatusHistory
             {
                 ShipmentId = shipment.Id,
@@ -133,7 +127,6 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
 
             await _uow.SaveChangesAsync(ct);
 
-            // Broadcast status update via SignalR
             await _tracking.NotifyShipmentStatusChangeAsync(shipment.Id, shipment.Status.ToString());
 
             return _mapper.Map<ShipmentDto>(shipment);
@@ -157,8 +150,7 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
         }
     }
 
-    // --- Assign Driver ---
-    // Links a driver to a pending shipment and triggers a push notification
+    
     public record AssignDriverCommand(Guid ShipmentId, Guid DriverId) : IRequest<ShipmentDto>;
 
     public class AssignDriverCommandHandler : IRequestHandler<AssignDriverCommand, ShipmentDto>
@@ -195,7 +187,6 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
             _uow.Repository<Shipment>().Update(shipment);
             await _uow.SaveChangesAsync(ct);
 
-            // Notify the driver via FCM
             if (!string.IsNullOrEmpty(driver.FcmToken))
             {
                 await _notifications.SendToDeviceAsync(

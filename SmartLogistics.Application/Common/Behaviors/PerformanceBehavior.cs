@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace SmartLogistics.Application.Common.Behaviors
 {
-    // ميدل وير داخلي (Behavior) عشان نراقب سرعة الـ Requests في السيستم
+    
     public class PerformanceBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : notnull
     {
@@ -17,7 +17,7 @@ namespace SmartLogistics.Application.Common.Behaviors
 
         public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
-            // بنبدأ عداد الوقت
+            
             var timer = new Stopwatch();
             timer.Start();
 
@@ -27,7 +27,7 @@ namespace SmartLogistics.Application.Common.Behaviors
 
             var elapsedMilliseconds = timer.ElapsedMilliseconds;
 
-            // لو الطلب أخد أكتر من نص ثانية (500ms) بنطلع تحذير في الـ Log
+            
             if (elapsedMilliseconds > 500)
             {
                 var requestName = typeof(TRequest).Name;

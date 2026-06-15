@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SmartLogistics.Infrastructure.Repositories
 {
-    // كلاس الـ Unit of Work عشان نتحكم في كل المستودعات من مكان واحد
+    
     public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext _context;
@@ -19,7 +19,7 @@ namespace SmartLogistics.Infrastructure.Repositories
             _context = context;
         }
 
-        // دالة بتجيب الـ Repository الخاص بكل Entity ولو مش موجود بتعمله Create
+       
         public IRepository<T> Repository<T>() where T : class
         {
             var type = typeof(T);
@@ -35,7 +35,6 @@ namespace SmartLogistics.Infrastructure.Repositories
 
         
 
-        // بدأ عملية Transaction (عشان لو حاجة فشلت نرجع في كلامنا)
         public async Task BeginTransactionAsync()
         {
             _transaction = await _context.Database.BeginTransactionAsync();
@@ -68,8 +67,6 @@ namespace SmartLogistics.Infrastructure.Repositories
         }
         public async Task<int> SaveChangesAsync(CancellationToken ct = default)
         {
-            // تمرير الـ token للـ context بيخلي العملية "بشرية" وذكية 
-            // لو المستخدم كنسل الطلب، الداتا بيز هتوقف الحفظ فوراً
             return await _context.SaveChangesAsync(ct);
         }
     }

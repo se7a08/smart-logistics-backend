@@ -6,7 +6,7 @@ using SmartLogistics.Domain.Interfaces;
 
 namespace SmartLogistics.Application.Features.Auth.Commands
 {
-    // --- Register Command ---
+   
     public record RegisterCommand(RegisterRequest Request) : IRequest<AuthResponse>;
 
     public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthResponse>
@@ -27,7 +27,6 @@ namespace SmartLogistics.Application.Features.Auth.Commands
             var req = command.Request;
             var userRepo = _uow.Repository<User>();
 
-            // Ensure email uniqueness
             if (await userRepo.AnyAsync(u => u.Email == req.Email.ToLower(), ct))
             {
                 throw new BusinessRuleException("The provided email address is already in use.");
@@ -47,7 +46,6 @@ namespace SmartLogistics.Application.Features.Auth.Commands
 
             await userRepo.AddAsync(newUser, ct);
 
-            // Setup the initial refresh token for the new user
             var refreshToken = CreateNewRefreshToken(newUser.Id);
             await _uow.Repository<RefreshToken>().AddAsync(refreshToken, ct);
             await _uow.SaveChangesAsync(ct);
@@ -73,7 +71,6 @@ namespace SmartLogistics.Application.Features.Auth.Commands
         };
     }
 
-    // --- Login Command ---
     public record LoginCommand(LoginRequest Request) : IRequest<AuthResponse>;
 
     public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponse>
@@ -105,14 +102,12 @@ namespace SmartLogistics.Application.Features.Auth.Commands
                 throw new UnauthorizedException("This account has been deactivated. Please contact support.");
             }
 
-            // Sync FCM Token for mobile notifications if provided
             if (!string.IsNullOrEmpty(req.FcmToken) && user.FcmToken != req.FcmToken)
             {
                 user.FcmToken = req.FcmToken;
                 _uow.Repository<User>().Update(user);
             }
 
-            // Create a new session token
             var refreshToken = new RefreshToken
             {
                 UserId = user.Id,
@@ -137,7 +132,6 @@ namespace SmartLogistics.Application.Features.Auth.Commands
         }
     }
 
-    // --- Refresh Token Command ---
     public record RefreshTokenCommand(string Token) : IRequest<AuthResponse>;
 
     public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, AuthResponse>
@@ -164,7 +158,6 @@ namespace SmartLogistics.Application.Features.Auth.Commands
             var user = await _uow.Repository<User>().GetByIdAsync(existingToken.UserId, ct);
             if (user == null) throw new UnauthorizedException("User no longer exists.");
 
-            // Token Rotation: Invalidate old token and issue a new one
             var newRefreshToken = new RefreshToken
             {
                 UserId = user.Id,
@@ -194,7 +187,6 @@ namespace SmartLogistics.Application.Features.Auth.Commands
         }
     }
 
-    // --- Logout Command ---
     public record LogoutCommand(string RefreshToken) : IRequest<bool>;
 
     public class LogoutCommandHandler : IRequestHandler<LogoutCommand, bool>

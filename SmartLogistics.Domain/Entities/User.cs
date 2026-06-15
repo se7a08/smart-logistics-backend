@@ -18,14 +18,11 @@ namespace SmartLogistics.Domain.Entities
         public UserRole Role { get; set; }
         public bool IsActive { get; set; } = true;
 
-        // FCM token for push notifications
         public string? FcmToken { get; set; }
 
-        // Driver-specific fields
         public string? LicenseNumber { get; set; }
         public string? VehiclePlate { get; set; }
 
-        // Navigation Properties
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
         public ICollection<Shipment> AssignedShipments { get; set; } = new List<Shipment>();
         public ICollection<DriverLocation> Locations { get; set; } = new List<DriverLocation>();

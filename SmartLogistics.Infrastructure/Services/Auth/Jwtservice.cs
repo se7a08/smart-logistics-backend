@@ -7,7 +7,6 @@ using System.Security.Claims;
 
 namespace SmartLogistics.Infrastructure.Services.Auth
 {
-    // الخدمة المسؤولة عن توليد وفحص الـ JWT Tokens
     public class JwtService : IJwtService
     {
         private readonly IConfiguration _config;
@@ -19,12 +18,10 @@ namespace SmartLogistics.Infrastructure.Services.Auth
 
         public string GenerateAccessToken(Guid userId, string email, string role)
         {
-            // سحب المفتاح السري من ملف الإعدادات
             var secretKey = _config["Jwt:Secret"];
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // تجهيز بيانات المستخدم داخل التوكن (Claims)
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
@@ -37,7 +34,7 @@ namespace SmartLogistics.Infrastructure.Services.Auth
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddHours(2), // زودنا الصلاحية لـ ساعتين كنوع من التغيير
+                expires: DateTime.Now.AddHours(2), 
                 signingCredentials: credentials
             );
 
@@ -65,14 +62,12 @@ namespace SmartLogistics.Infrastructure.Services.Auth
 
                 var jwtToken = (JwtSecurityToken)validatedToken;
 
-                // سحب الـ ID من الـ Claims وتحويله لـ Guid
                 var userIdString = jwtToken.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value;
 
                 return userIdString != null ? Guid.Parse(userIdString) : null;
             }
             catch (Exception ex)
             {
-                // لو حصل أي خطأ في الفحص بنرجع null
                 return null;
             }
         }

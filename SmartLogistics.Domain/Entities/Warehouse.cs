@@ -20,11 +20,9 @@ namespace SmartLogistics.Domain.Entities
         public int Capacity { get; set; }
         public bool IsActive { get; set; } = true;
 
-        // Manager contact info
         public string ManagerName { get; set; } = string.Empty;
         public string ManagerPhone { get; set; } = string.Empty;
 
-        // Navigation Properties
         public ICollection<Shipment> OriginShipments { get; set; } = new List<Shipment>();
         public ICollection<Shipment> DestinationShipments { get; set; } = new List<Shipment>();
     }

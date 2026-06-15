@@ -9,8 +9,7 @@ using SmartLogistics.Domain.Interfaces;
 
 namespace SmartLogistics.Application.Features.Shipments.Queries
 {
-    // --- Get Shipment By ID ---
-    // Fetches detailed information for a single shipment
+    
     public record GetShipmentByIdQuery(Guid Id) : IRequest<ShipmentDto>;
 
     public class GetShipmentByIdQueryHandler : IRequestHandler<GetShipmentByIdQuery, ShipmentDto>
@@ -34,8 +33,6 @@ namespace SmartLogistics.Application.Features.Shipments.Queries
         }
     }
 
-    // --- Get All Shipments (With Pagination & Filtering) ---
-    // Efficiently lists shipments with support for status filtering and search terms
     public record GetAllShipmentsQuery(QueryParameters Params, string? StatusFilter) : IRequest<PaginatedList<ShipmentDto>>;
 
     public class GetAllShipmentsQueryHandler : IRequestHandler<GetAllShipmentsQuery, PaginatedList<ShipmentDto>>
@@ -51,18 +48,17 @@ namespace SmartLogistics.Application.Features.Shipments.Queries
 
         public async Task<PaginatedList<ShipmentDto>> Handle(GetAllShipmentsQuery query, CancellationToken ct)
         {
-            // Fetch non-deleted shipments
+            
             var allShipments = await _uow.Repository<Shipment>().FindAsync(s => !s.IsDeleted, ct);
             var filtered = allShipments.AsQueryable();
 
-            // Apply Status Filter (e.g., Pending, InTransit)
+            
             if (!string.IsNullOrEmpty(query.StatusFilter) &&
                 Enum.TryParse<ShipmentStatus>(query.StatusFilter, true, out var status))
             {
                 filtered = filtered.Where(s => s.Status == status);
             }
 
-            // Apply Search Term (Tracking Number or Recipient Name)
             if (!string.IsNullOrEmpty(query.Params.SearchTerm))
             {
                 var search = query.Params.SearchTerm.ToLower();
@@ -73,7 +69,6 @@ namespace SmartLogistics.Application.Features.Shipments.Queries
 
             var totalCount = filtered.Count();
 
-            // Execute Pagination and Mapping
             var items = filtered
                 .OrderByDescending(s => s.CreatedAt) // Most recent first
                 .Skip((query.Params.PageNumber - 1) * query.Params.PageSize)
@@ -85,8 +80,6 @@ namespace SmartLogistics.Application.Features.Shipments.Queries
         }
     }
 
-    // --- Get Shipment Tracking History ---
-    // Retrieves the chronological status updates and location logs for a shipment
     public record GetShipmentHistoryQuery(Guid ShipmentId) : IRequest<List<ShipmentStatusHistoryDto>>;
 
     public class GetShipmentHistoryQueryHandler : IRequestHandler<GetShipmentHistoryQuery, List<ShipmentStatusHistoryDto>>
@@ -105,7 +98,6 @@ namespace SmartLogistics.Application.Features.Shipments.Queries
             var history = await _uow.Repository<ShipmentStatusHistory>()
                 .FindAsync(h => h.ShipmentId == query.ShipmentId, ct);
 
-            // Return history sorted by date to show the shipment timeline correctly
             return history
                 .OrderBy(h => h.CreatedAt)
                 .Select(h => _mapper.Map<ShipmentStatusHistoryDto>(h))
