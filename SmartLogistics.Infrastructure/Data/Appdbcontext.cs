@@ -1,17 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SmartLogistics.Domain.Common;
 using SmartLogistics.Domain.Entities;
 using SmartLogistics.Domain.Enums;
+using SmartLogistics.Infrastructure.Identity;
 
 namespace SmartLogistics.Infrastructure.Data
 {
     
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         
-        public DbSet<User> Users { get; set; }
+        public new DbSet<User> Users { get; set; }
         public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<Shipment> Shipments {  get; set; }
         public DbSet<ShipmentStatusHistory> ShipmentStatusHistories {  get; set; }
@@ -30,6 +32,7 @@ namespace SmartLogistics.Infrastructure.Data
                 builder.Property(u => u.Email).HasMaxLength(200).IsRequired();
                 builder.HasIndex(u => u.Email).IsUnique(); 
                 builder.HasMany(u => u.RefreshTokens).WithOne(t => t.User).HasForeignKey(t => t.UserId);
+                builder.ToTable("Users");
             });
 
             modelBuilder.Entity<Warehouse>(w => {

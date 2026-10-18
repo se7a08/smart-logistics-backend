@@ -3,13 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartLogistics.Domain", "SmartLogistics.Domain\SmartLogistics.Domain.csproj", "{42BC89E4-CFA8-47EA-B13C-5A878D1035F3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartLogistics.Domain", "SmartLogistics.Domain\SmartLogistics.Domain.csproj", "{42BC89E4-CFA8-47EA-B13C-5A878D1035F3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartLogistics.Application", "SmartLogistics.Application\SmartLogistics.Application.csproj", "{11871E97-1E00-43E5-8FF6-5297C90C545F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartLogistics.Application", "SmartLogistics.Application\SmartLogistics.Application.csproj", "{11871E97-1E00-43E5-8FF6-5297C90C545F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartLogistics.Infrastructure", "SmartLogistics.Infrastructure\SmartLogistics.Infrastructure.csproj", "{CA2E9437-D9F6-451B-917C-B7918A49DE05}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartLogistics.Infrastructure", "SmartLogistics.Infrastructure\SmartLogistics.Infrastructure.csproj", "{CA2E9437-D9F6-451B-917C-B7918A49DE05}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartLogistics.API", "SmartLogistics.API\SmartLogistics.API.csproj", "{85156D5E-B046-41C5-9CAF-249796855E1C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartLogistics.API", "SmartLogistics.API\SmartLogistics.API.csproj", "{85156D5E-B046-41C5-9CAF-249796855E1C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartLogistics.MVC", "SmartLogistics.MVC\SmartLogistics.MVC.csproj", "{71122E62-6C62-4250-8B9D-DCDE50B682DD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{85156D5E-B046-41C5-9CAF-249796855E1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{85156D5E-B046-41C5-9CAF-249796855E1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{85156D5E-B046-41C5-9CAF-249796855E1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71122E62-6C62-4250-8B9D-DCDE50B682DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71122E62-6C62-4250-8B9D-DCDE50B682DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71122E62-6C62-4250-8B9D-DCDE50B682DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71122E62-6C62-4250-8B9D-DCDE50B682DD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
