@@ -48,5 +48,6 @@ namespace SmartLogistics.Infrastructure.Repositories
         public void Delete(T entity) => _dbSet.Remove(entity);
 
         public void DeleteRange(IEnumerable<T> entities) => _dbSet.RemoveRange(entities);
+        public IQueryable<T> Query() => _dbSet.AsNoTracking();
     }
 }

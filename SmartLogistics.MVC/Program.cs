@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Identity;
 using SmartLogistics.API.Extensions;
 using SmartLogistics.Infrastructure.Data;
+using SmartLogistics.Infrastructure.Data.Seeding;
 using SmartLogistics.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,6 +32,9 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     await IdentitySeeder.SeedAsync(scope.ServiceProvider);
+
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await ShipmentSeeder.SeedAsync(db);
 }
 
 // Configure the HTTP request pipeline.

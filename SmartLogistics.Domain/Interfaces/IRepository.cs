@@ -13,5 +13,6 @@ namespace SmartLogistics.Domain.Interfaces
         Task<T> AddAsync(T entity, CancellationToken ct = default);
         void Update(T entity);
         void Delete(T entity);
+        IQueryable<T> Query();
     }
 }

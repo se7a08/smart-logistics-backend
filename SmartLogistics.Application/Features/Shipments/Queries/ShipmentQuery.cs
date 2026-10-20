@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using Microsoft.EntityFrameworkCore;
+using AutoMapper;
 using MediatR;
 using SmartLogistics.Application.Common.Exceptions;
 using SmartLogistics.Application.Common.Models;
@@ -25,11 +26,19 @@ namespace SmartLogistics.Application.Features.Shipments.Queries
 
         public async Task<ShipmentDto> Handle(GetShipmentByIdQuery query, CancellationToken ct)
         {
-            var shipment = await _uow.Repository<Shipment>()
-                .FirstOrDefaultAsync(s => s.Id == query.Id && !s.IsDeleted, ct)
+            return await _uow.Repository<Shipment>().Query()
+                .Where(s => s.Id == query.Id)
+                .Select(s => new ShipmentDto(
+                    s.Id, s.TrackingNumber, s.QrCode, s.RecipientName, s.RecipientPhone, s.RecipientEmail,
+                    s.DeliveryAddress, s.DeliveryLatitude, s.DeliveryLongitude, s.Weight, s.Description,
+                    s.DeclaredValue, s.IsFragile, s.Status.ToString(), s.PickedUpAt, s.DeliveredAt,
+                    s.EstimatedDelivery, s.QrVerified, s.DeliveryNotes, s.DriverId,
+                    s.Driver != null ? s.Driver.FullName : "Not Assigned",
+                    s.OriginWarehouseId, s.OriginWarehouse.Name,
+                    s.DestinationWarehouseId, s.DestinationWarehouse.Name,
+                    s.CreatedAt))
+                .FirstOrDefaultAsync(ct)
                 ?? throw new NotFoundException("Shipment", query.Id);
-
-            return _mapper.Map<ShipmentDto>(shipment);
         }
     }
 
@@ -48,33 +57,35 @@ namespace SmartLogistics.Application.Features.Shipments.Queries
 
         public async Task<PaginatedList<ShipmentDto>> Handle(GetAllShipmentsQuery query, CancellationToken ct)
         {
-            
-            var allShipments = await _uow.Repository<Shipment>().FindAsync(s => !s.IsDeleted, ct);
-            var filtered = allShipments.AsQueryable();
+            var q = _uow.Repository<Shipment>().Query();
 
-            
             if (!string.IsNullOrEmpty(query.StatusFilter) &&
                 Enum.TryParse<ShipmentStatus>(query.StatusFilter, true, out var status))
-            {
-                filtered = filtered.Where(s => s.Status == status);
-            }
+                q = q.Where(s => s.Status == status);
 
             if (!string.IsNullOrEmpty(query.Params.SearchTerm))
             {
                 var search = query.Params.SearchTerm.ToLower();
-                filtered = filtered.Where(s =>
-                    s.TrackingNumber.ToLower().Contains(search) ||
-                    s.RecipientName.ToLower().Contains(search));
+                q = q.Where(s => s.TrackingNumber.ToLower().Contains(search)
+                              || s.RecipientName.ToLower().Contains(search));
             }
 
-            var totalCount = filtered.Count();
+            var totalCount = await q.CountAsync(ct);
 
-            var items = filtered
-                .OrderByDescending(s => s.CreatedAt) // Most recent first
+            var items = await q
+                .OrderByDescending(s => s.CreatedAt)
                 .Skip((query.Params.PageNumber - 1) * query.Params.PageSize)
                 .Take(query.Params.PageSize)
-                .Select(s => _mapper.Map<ShipmentDto>(s))
-                .ToList();
+                .Select(s => new ShipmentDto(
+                    s.Id, s.TrackingNumber, s.QrCode, s.RecipientName, s.RecipientPhone, s.RecipientEmail,
+                    s.DeliveryAddress, s.DeliveryLatitude, s.DeliveryLongitude, s.Weight, s.Description,
+                    s.DeclaredValue, s.IsFragile, s.Status.ToString(), s.PickedUpAt, s.DeliveredAt,
+                    s.EstimatedDelivery, s.QrVerified, s.DeliveryNotes, s.DriverId,
+                    s.Driver != null ? s.Driver.FullName : "Not Assigned",
+                    s.OriginWarehouseId, s.OriginWarehouse.Name,
+                    s.DestinationWarehouseId, s.DestinationWarehouse.Name,
+                    s.CreatedAt))
+                .ToListAsync(ct);
 
             return PaginatedList<ShipmentDto>.Create(items, totalCount, query.Params.PageNumber, query.Params.PageSize);
         }
