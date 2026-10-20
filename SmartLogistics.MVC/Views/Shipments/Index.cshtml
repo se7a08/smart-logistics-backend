@@ -1,0 +1,82 @@
+﻿@using SmartLogistics.Application.Common.Models
+@using SmartLogistics.Application.DTOs.Shipments
+@using SmartLogistics.Domain.Enums
+@model PaginatedList<ShipmentDto>
+@{
+    ViewData["Title"] = "Shipments";
+    var search = ViewData["Search"] as string;
+    var status = ViewData["Status"] as string;
+
+    string Badge(string s) => s switch
+    {
+        "Pending" => "secondary",
+        "PickedUp" => "info",
+        "InTransit" => "primary",
+        "Delivered" => "success",
+        "Cancelled" => "danger",
+        _ => "dark"
+    };
+}
+
+<h2 class="mb-3">Shipments</h2>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-5">
+        <input name="search" value="@search" class="form-control" placeholder="Tracking number or recipient" />
+    </div>
+    <div class="col-md-3">
+        <select name="status" class="form-select">
+            <option value="">All statuses</option>
+            @foreach (var s in Enum.GetNames<ShipmentStatus>())
+            {
+                <option value="@s" selected="@(s == status)">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary w-100">Filter</button>
+    </div>
+    <div class="col-md-2">
+        <a asp-action="Index" class="btn btn-outline-secondary w-100">Reset</a>
+    </div>
+</form>
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th>Tracking #</th>
+            <th>Recipient</th>
+            <th>Status</th>
+            <th>Driver</th>
+            <th>Est. delivery</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var s in Model.Items)
+        {
+            <tr>
+                <td>@s.TrackingNumber</td>
+                <td>@s.RecipientName</td>
+                <td><span class="badge bg-@Badge(s.Status)">@s.Status</span></td>
+                <td>@(s.DriverName ?? "-")</td>
+                <td>@(s.EstimatedDelivery?.ToString("yyyy-MM-dd") ?? "-")</td>
+                <td><a asp-action="Details" asp-route-id="@s.Id" class="btn btn-sm btn-outline-primary">Details</a></td>
+            </tr>
+        }
+        @if (!Model.Items.Any())
+        {
+            <tr><td colspan="6" class="text-center text-muted py-4">No shipments found.</td></tr>
+        }
+    </tbody>
+</table>
+
+<div class="d-flex justify-content-between align-items-center">
+    <span class="text-muted">Page @Model.PageNumber of @Math.Max(Model.TotalPages, 1) (@Model.TotalCount shipments)</span>
+    <div>
+        <a class="btn btn-outline-secondary btn-sm @(Model.HasPreviousPage ? "" : "disabled")"
+           asp-action="Index" asp-route-page="@(Model.PageNumber - 1)" asp-route-search="@search" asp-route-status="@status">Previous</a>
+        <a class="btn btn-outline-secondary btn-sm @(Model.HasNextPage ? "" : "disabled")"
+           asp-action="Index" asp-route-page="@(Model.PageNumber + 1)" asp-route-search="@search" asp-route-status="@status">Next</a>
+    </div>
+</div>
