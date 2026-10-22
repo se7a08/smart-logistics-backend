@@ -1,8 +1,7 @@
 
-
-// Add services to the container.
 using Microsoft.AspNetCore.Identity;
-using SmartLogistics.API.Extensions;
+using SmartLogistics.Application;
+using SmartLogistics.Infrastructure;
 using SmartLogistics.Infrastructure.Data;
 using SmartLogistics.Infrastructure.Data.Seeding;
 using SmartLogistics.Infrastructure.Identity;

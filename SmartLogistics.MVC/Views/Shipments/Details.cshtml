@@ -6,6 +6,10 @@
 }
 
 <a asp-action="Index" class="btn btn-link ps-0">&larr; Back to shipments</a>
+@if (TempData["Success"] is string ok)
+{
+    <div class="alert alert-success">@ok</div>
+}
 <h2 class="mb-3">@Model.TrackingNumber <span class="badge bg-secondary fs-6">@Model.Status</span></h2>
 
 <div class="row g-3">

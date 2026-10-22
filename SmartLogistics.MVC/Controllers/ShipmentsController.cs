@@ -4,7 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using SmartLogistics.Application.Common.Exceptions;
 using SmartLogistics.Application.Common.Models;
 using SmartLogistics.Application.Features.Shipments.Queries;
-
+using SmartLogistics.Application.Features.Shipments.Commands;
+using SmartLogistics.Application.Features.Warehouses.Queries;
+using SmartLogistics.MVC.Models;
+using SmartLogistics.Application.DTOs.Shipments;
 namespace SmartLogistics.MVC.Controllers
 {
     [Authorize(Roles = "Admin,WarehouseManager")]
@@ -43,6 +46,51 @@ namespace SmartLogistics.MVC.Controllers
             {
                 return NotFound();
             }
+        }
+        [HttpGet]
+        public async Task<IActionResult> Create(CancellationToken ct)
+        {
+            var vm = new CreateShipmentViewModel
+            {
+                Warehouses = await _mediator.Send(new GetWarehouseOptionsQuery(), ct),
+                EstimatedDelivery = DateTime.UtcNow.Date.AddDays(2)
+            };
+            return View(vm);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(CreateShipmentViewModel vm, CancellationToken ct)
+        {
+            if (vm.OriginWarehouseId == vm.DestinationWarehouseId && vm.OriginWarehouseId != null)
+                ModelState.AddModelError(nameof(vm.DestinationWarehouseId), "Origin and destination must be different.");
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var request = new CreateShipmentRequest(
+                        vm.RecipientName, vm.RecipientPhone, vm.RecipientEmail, vm.DeliveryAddress,
+                        vm.DeliveryLatitude, vm.DeliveryLongitude, vm.Weight, vm.Description,
+                        vm.DeclaredValue, vm.IsFragile,
+                        vm.OriginWarehouseId!.Value, vm.DestinationWarehouseId!.Value,
+                        vm.EstimatedDelivery);
+
+                    var created = await _mediator.Send(new CreateShipmentCommand(request), ct);
+                    TempData["Success"] = $"Shipment {created.TrackingNumber} created.";
+                    return RedirectToAction(nameof(Details), new { id = created.Id });
+                }
+                catch (ValidationException ex)
+                {
+                    ModelState.AddModelError(string.Empty, ex.Message);
+                }
+                catch (Exception ex) when (ex is NotFoundException or BusinessRuleException)
+                {
+                    ModelState.AddModelError(string.Empty, ex.Message);
+                }
+            }
+
+            vm.Warehouses = await _mediator.Send(new GetWarehouseOptionsQuery(), ct);
+            return View(vm);
         }
     }
 }

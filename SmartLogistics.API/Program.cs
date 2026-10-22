@@ -5,6 +5,8 @@ using SmartLogistics.Infrastructure.Data;
 using SmartLogistics.Infrastructure.Data.Seeding;
 using SmartLogistics.Infrastructure.Hubs;
 using SmartLogistics.Domain.Interfaces;
+using SmartLogistics.Application;
+using SmartLogistics.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -21,43 +21,7 @@ namespace SmartLogistics.API.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        
-        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
-        {
-            services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(
-                    configuration.GetConnectionString("DefaultConnection"),
-                    sql => sql.MigrationsAssembly("SmartLogistics.Infrastructure")
-                              .EnableRetryOnFailure(3)));
-
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-            services.AddScoped<IJwtService, JwtService>();
-            services.AddScoped<IPasswordHasher, PasswordHasher>();
-            services.AddScoped<IQrCodeService, QrCodeService>();
-            services.AddScoped<INotificationService, FcmNotificationService>();
-            services.AddScoped<ITrackingService, TrackingService>(); 
-
-            return services;
-        }
-
-        public static IServiceCollection AddApplication(this IServiceCollection services)
-        {
-            services.AddMediatR(cfg =>
-            {
-                cfg.RegisterServicesFromAssembly(typeof(MappingProfile).Assembly);
-                cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-                cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
-            });
-
-            
-            services.AddAutoMapper(typeof(MappingProfile).Assembly);
-
-            services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
-
-            return services;
-        }
-
+       
         public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
             var key = Encoding.UTF8.GetBytes(configuration["Jwt:Secret"] ?? "SmartLogisticsSuperSecretKey2026");

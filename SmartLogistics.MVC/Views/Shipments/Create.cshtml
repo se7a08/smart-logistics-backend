@@ -1,0 +1,85 @@
+﻿@using SmartLogistics.MVC.Models
+@model CreateShipmentViewModel
+@{
+    ViewData["Title"] = "New shipment";
+}
+
+<a asp-action="Index" class="btn btn-link ps-0">&larr; Back to shipments</a>
+<h2 class="mb-3">New shipment</h2>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="RecipientName" class="form-label"></label>
+            <input asp-for="RecipientName" class="form-control" /><span asp-validation-for="RecipientName" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="RecipientPhone" class="form-label"></label>
+            <input asp-for="RecipientPhone" class="form-control" /><span asp-validation-for="RecipientPhone" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="RecipientEmail" class="form-label"></label>
+            <input asp-for="RecipientEmail" class="form-control" /><span asp-validation-for="RecipientEmail" class="text-danger"></span>
+        </div>
+
+        <div class="col-12">
+            <label asp-for="DeliveryAddress" class="form-label"></label>
+            <input asp-for="DeliveryAddress" class="form-control" /><span asp-validation-for="DeliveryAddress" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="DeliveryLatitude" class="form-label"></label>
+            <input asp-for="DeliveryLatitude" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label asp-for="DeliveryLongitude" class="form-label"></label>
+            <input asp-for="DeliveryLongitude" class="form-control" />
+        </div>
+
+        <div class="col-md-6">
+            <label asp-for="Description" class="form-label"></label>
+            <input asp-for="Description" class="form-control" /><span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Weight" class="form-label"></label>
+            <input asp-for="Weight" class="form-control" /><span asp-validation-for="Weight" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="DeclaredValue" class="form-label"></label>
+            <input asp-for="DeclaredValue" class="form-control" />
+        </div>
+
+        <div class="col-md-4">
+            <label asp-for="OriginWarehouseId" class="form-label"></label>
+            <select asp-for="OriginWarehouseId" class="form-select"
+                    asp-items="@(new SelectList(Model.Warehouses, "Id", "Name"))">
+                <option value="">Select...</option>
+            </select>
+            <span asp-validation-for="OriginWarehouseId" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="DestinationWarehouseId" class="form-label"></label>
+            <select asp-for="DestinationWarehouseId" class="form-select"
+                    asp-items="@(new SelectList(Model.Warehouses, "Id", "Name"))">
+                <option value="">Select...</option>
+            </select>
+            <span asp-validation-for="DestinationWarehouseId" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="EstimatedDelivery" class="form-label"></label>
+            <input asp-for="EstimatedDelivery" type="date" class="form-control" />
+        </div>
+
+        <div class="col-12 form-check ms-2">
+            <input asp-for="IsFragile" class="form-check-input" />
+            <label asp-for="IsFragile" class="form-check-label"></label>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Create shipment</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

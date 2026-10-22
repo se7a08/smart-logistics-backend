@@ -16,7 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SmartLogistics.API\SmartLogistics.API.csproj" />
     <ProjectReference Include="..\SmartLogistics.Application\SmartLogistics.Application.csproj" />
     <ProjectReference Include="..\SmartLogistics.Infrastructure\SmartLogistics.Infrastructure.csproj" />
   </ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SmartLogistics.Application.Common.Exceptions;
 using SmartLogistics.Application.DTOs.Shipments;
 using SmartLogistics.Domain.Entities;
@@ -68,11 +69,10 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
 
             await _uow.SaveChangesAsync(ct);
 
-            var created = await _uow.Repository<Shipment>()
-                .FirstOrDefaultAsync(s => s.Id == shipment.Id, ct)
-                ?? throw new NotFoundException("Shipment", shipment.Id);
-
-            return _mapper.Map<ShipmentDto>(created);
+            return await _uow.Repository<Shipment>().Query()
+                .Where(s => s.Id == shipment.Id)
+                .Select(ShipmentProjections.ToDto)
+                .FirstAsync(ct);
         }
 
         private static string GenerateTrackingNumber()
