@@ -11,29 +11,35 @@ namespace SmartLogistics.Infrastructure.Services.Notifications
     public class FcmNotificationService : INotificationService
     {
         private readonly ILogger<FcmNotificationService> _logger;
-        private readonly FirebaseMessaging _messaging;
+        private readonly FirebaseMessaging? _messaging;
 
         public FcmNotificationService(IConfiguration config, ILogger<FcmNotificationService> logger)
         {
             _logger = logger;
 
-            
-            if (FirebaseApp.DefaultInstance == null)
+            try
             {
-                var path = config["Firebase:CredentialFilePath"];
-
-                FirebaseApp.Create(new AppOptions
+                if (FirebaseApp.DefaultInstance == null)
                 {
-                    Credential = string.IsNullOrEmpty(path)
-                        ? GoogleCredential.GetApplicationDefault()
-                        : GoogleCredential.FromFile(path)
-                });
-            }
+                    var path = config["Firebase:CredentialFilePath"];
 
-            _messaging = FirebaseMessaging.DefaultInstance;
+                    if (string.IsNullOrEmpty(path) || !File.Exists(path))
+                    {
+                        _logger.LogWarning("Firebase credentials not found (path: {Path}). Push notifications are disabled.", path);
+                        return;
+                    }
+
+                    FirebaseApp.Create(new AppOptions { Credential = GoogleCredential.FromFile(path) });
+                }
+
+                _messaging = FirebaseMessaging.DefaultInstance;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Firebase init failed. Push notifications are disabled.");
+            }
         }
 
-        
         public async Task SendToDeviceAsync(string token, string title, string messageBody, Dictionary<string, string>? extraData = null)
         {
             try
@@ -80,6 +86,7 @@ namespace SmartLogistics.Infrastructure.Services.Notifications
 
         public async Task SendToMultipleDevicesAsync(IEnumerable<string> tokens, string title, string messageBody, Dictionary<string, string>? extraData = null)
         {
+            if (_messaging is null) return;
             var tokensList = tokens.ToList();
             if (!tokensList.Any()) return;
 

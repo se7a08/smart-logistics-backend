@@ -8,6 +8,8 @@ using SmartLogistics.Application.Features.Shipments.Commands;
 using SmartLogistics.Application.Features.Warehouses.Queries;
 using SmartLogistics.MVC.Models;
 using SmartLogistics.Application.DTOs.Shipments;
+using SmartLogistics.Application.Features.Drivers.Queries;
+using SmartLogistics.Domain.Enums;
 namespace SmartLogistics.MVC.Controllers
 {
     [Authorize(Roles = "Admin,WarehouseManager")]
@@ -40,6 +42,7 @@ namespace SmartLogistics.MVC.Controllers
                 var shipment = await _mediator.Send(new GetShipmentByIdQuery(id), ct);
                 var history = await _mediator.Send(new GetShipmentHistoryQuery(id), ct);
                 ViewData["History"] = history;
+                ViewData["Drivers"] = await _mediator.Send(new GetDriverOptionsQuery(), ct);
                 return View(shipment);
             }
             catch (NotFoundException)
@@ -91,6 +94,38 @@ namespace SmartLogistics.MVC.Controllers
 
             vm.Warehouses = await _mediator.Send(new GetWarehouseOptionsQuery(), ct);
             return View(vm);
+        }
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> AssignDriver(Guid id, Guid driverId, CancellationToken ct)
+        {
+            try
+            {
+                await _mediator.Send(new AssignDriverCommand(id, driverId), ct);
+                TempData["Success"] = "Driver assigned.";
+            }
+            catch (Exception ex) when (ex is NotFoundException or BusinessRuleException)
+            {
+                TempData["Error"] = ex.Message;
+            }
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateStatus(Guid id, ShipmentStatus status, string? notes, CancellationToken ct)
+        {
+            try
+            {
+                var userId = Guid.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var g)
+                    ? g : Guid.Empty;
+                var request = new UpdateShipmentStatusRequest(status, notes, null, null);
+                await _mediator.Send(new UpdateShipmentStatusCommand(id, userId, request), ct);
+                TempData["Success"] = $"Status changed to {status}.";
+            }
+            catch (Exception ex) when (ex is NotFoundException or BusinessRuleException)
+            {
+                TempData["Error"] = ex.Message;
+            }
+            return RedirectToAction(nameof(Details), new { id });
         }
     }
 }

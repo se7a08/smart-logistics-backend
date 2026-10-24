@@ -10,6 +10,10 @@
 {
     <div class="alert alert-success">@ok</div>
 }
+@if (TempData["Error"] is string err)
+{
+    <div class="alert alert-danger">@err</div>
+}
 <h2 class="mb-3">@Model.TrackingNumber <span class="badge bg-secondary fs-6">@Model.Status</span></h2>
 
 <div class="row g-3">
@@ -58,7 +62,55 @@
         </div>
     </div>
 </div>
+@{
+    var drivers = ViewData["Drivers"] as List<SmartLogistics.Application.Features.Drivers.Queries.DriverOptionDto> ?? new();
+    var nextStatuses = Model.Status switch
+    {
+        "Pending" => new[] { "PickedUp", "Cancelled" },
+        "PickedUp" => new[] { "InTransit", "Cancelled" },
+        "InTransit" => new[] { "Delivered", "Cancelled" },
+        _ => Array.Empty<string>()
+    };
+}
 
+<div class="row g-3 mt-1">
+    @if (Model.Status == "Pending")
+    {
+        <div class="col-md-6">
+            <form asp-action="AssignDriver" asp-route-id="@Model.Id" method="post" class="card shadow-sm card-body">
+                <h5>Assign driver</h5>
+                <div class="input-group">
+                    <select name="driverId" class="form-select" required>
+                        <option value="">Select driver...</option>
+                        @foreach (var d in drivers)
+                        {
+                            <option value="@d.Id" selected="@(d.Id == Model.DriverId)">@d.Name</option>
+                        }
+                    </select>
+                    <button class="btn btn-primary">Assign</button>
+                </div>
+            </form>
+        </div>
+    }
+    @if (nextStatuses.Length > 0)
+    {
+        <div class="col-md-6">
+            <form asp-action="UpdateStatus" asp-route-id="@Model.Id" method="post" class="card shadow-sm card-body">
+                <h5>Update status</h5>
+                <div class="input-group mb-2">
+                    <select name="status" class="form-select">
+                        @foreach (var s in nextStatuses)
+                        {
+                            <option value="@s">@s</option>
+                        }
+                    </select>
+                    <button class="btn btn-success">Update</button>
+                </div>
+                <input name="notes" class="form-control" placeholder="Notes (optional)" />
+            </form>
+        </div>
+    }
+</div>
 <h5 class="mt-4">Status history</h5>
 <table class="table table-sm">
     <thead><tr><th>Date (UTC)</th><th>Status</th><th>Notes</th></tr></thead>

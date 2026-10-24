@@ -129,7 +129,10 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
 
             await _tracking.NotifyShipmentStatusChangeAsync(shipment.Id, shipment.Status.ToString());
 
-            return _mapper.Map<ShipmentDto>(shipment);
+            return await _uow.Repository<Shipment>().Query()
+                .Where(s => s.Id == shipment.Id)
+                .Select(ShipmentProjections.ToDto)
+                .FirstAsync(ct);
         }
 
         private static void ValidateStatusTransition(ShipmentStatus current, ShipmentStatus next)
@@ -197,7 +200,10 @@ namespace SmartLogistics.Application.Features.Shipments.Commands
                 );
             }
 
-            return _mapper.Map<ShipmentDto>(shipment);
+            return await _uow.Repository<Shipment>().Query()
+                .Where(s => s.Id == shipment.Id)
+                .Select(ShipmentProjections.ToDto)
+                .FirstAsync(ct);
         }
     }
 }
