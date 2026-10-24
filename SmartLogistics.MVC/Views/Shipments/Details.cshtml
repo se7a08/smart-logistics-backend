@@ -57,6 +57,10 @@
                     <dd class="col-7">@(Model.EstimatedDelivery?.ToString("yyyy-MM-dd HH:mm") ?? "-")</dd>
                     <dt class="col-5">Delivered at</dt>
                     <dd class="col-7">@(Model.DeliveredAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</dd>
+                    <div class="card shadow-sm card-body text-center mt-3" style="max-width:260px">
+                        <img src="@Url.Action("QrImage", new { id = Model.Id })" alt="QR" class="img-fluid" />
+                        <small class="text-muted">Delivery QR</small>
+                    </div>
                 </dl>
             </div>
         </div>

@@ -1,0 +1,24 @@
+﻿@using SmartLogistics.Application.DTOs.Shipments
+@model IEnumerable<ShipmentDto>
+@{
+    ViewData["Title"] = "Deliveries";
+}
+<h2 class="mb-3">Ready for delivery</h2>
+<table class="table align-middle">
+    <thead><tr><th>Tracking #</th><th>Recipient</th><th>Driver</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var s in Model)
+        {
+            <tr>
+                <td>@s.TrackingNumber</td>
+                <td>@s.RecipientName</td>
+                <td>@s.DriverName</td>
+                <td><a asp-action="Scan" asp-route-id="@s.Id" class="btn btn-sm btn-primary">Scan QR</a></td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="4" class="text-muted text-center py-4">No shipments in transit.</td></tr>
+        }
+    </tbody>
+</table>

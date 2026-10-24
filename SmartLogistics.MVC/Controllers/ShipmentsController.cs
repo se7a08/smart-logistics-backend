@@ -10,14 +10,20 @@ using SmartLogistics.MVC.Models;
 using SmartLogistics.Application.DTOs.Shipments;
 using SmartLogistics.Application.Features.Drivers.Queries;
 using SmartLogistics.Domain.Enums;
+using SmartLogistics.Domain.Interfaces;
 namespace SmartLogistics.MVC.Controllers
 {
     [Authorize(Roles = "Admin,WarehouseManager")]
     public class ShipmentsController : Controller
     {
         private readonly IMediator _mediator;
+        private readonly IQrCodeService _qr;
 
-        public ShipmentsController(IMediator mediator) => _mediator = mediator;
+        public ShipmentsController(IMediator mediator, IQrCodeService qr)
+        {
+            _mediator = mediator;
+            _qr = qr;
+        }
 
         public async Task<IActionResult> Index(string? search, string? status, int page = 1, CancellationToken ct = default)
         {
@@ -126,6 +132,16 @@ namespace SmartLogistics.MVC.Controllers
                 TempData["Error"] = ex.Message;
             }
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        public async Task<IActionResult> QrImage(Guid id, CancellationToken ct)
+        {
+            try
+            {
+                var shipment = await _mediator.Send(new GetShipmentByIdQuery(id), ct);
+                return File(_qr.GenerateQrCodeImage(shipment.QrCode), "image/png");
+            }
+            catch (NotFoundException) { return NotFound(); }
         }
     }
 }
